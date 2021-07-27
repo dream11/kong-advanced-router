@@ -1,0 +1,9 @@
+/.idea/*
+.DS_Store
+.secrets
+.config
+.config-prod
+.pongo/.ash_history
+*.rock
+*.report.out
+/kong-advanced-router.iml

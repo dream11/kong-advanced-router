@@ -1,0 +1,86 @@
+--local helpers = require "spec.helpers"
+--
+--for _, strategy in helpers.each_strategy() do
+--    describe("circuit breaker plugin [#" .. strategy .. "]", function()
+--        local mock_host = helpers.mock_upstream_host;
+--
+--        local bp, db = helpers.get_db_utils(strategy, {"routes", "services", "plugins"}, {"advanced-router"});
+--
+--        local test_service = bp.services:insert(
+--            {
+--                protocol = "http",
+--                host = mock_host, -- Just a dummy value. Not honoured
+--                port = mock_port, -- Just a dummy value. Not honoured
+--                name = "test",
+--                connect_timeout = 2000
+--            })
+--
+--        assert(bp.routes:insert({
+--            methods = {"GET"},
+--            protocols = {"http"},
+--            paths = {"/main_route"},
+--            strip_path = false,
+--            preserve_host = true,
+--            service = test_service
+--        }))
+--
+--        assert(bp.routes:insert({
+--            methods = {"GET"},
+--            protocols = {"http"},
+--            paths = {"/test"},
+--            strip_path = false,
+--            preserve_host = true,
+--            service = test_service
+--        }))
+--
+--
+--
+--        local get_and_assert = function (res_status_to_be_generated, res_status_expected, put_delay)
+--            local proxy_client = helpers.proxy_client()
+--            local res = assert(proxy_client:send(
+--                {
+--                    method = "GET",
+--                    path = "/test",
+--                    headers = {response_http_code = res_status_to_be_generated, put_delay = put_delay or 0}
+--                }))
+--            assert.are.same(res_status_expected, res.status)
+--            proxy_client:close()
+--        end
+--
+--        local change_config = function (patch)
+--            local admin_client = helpers.admin_client()
+--            local url = "/plugins/" .. circuit_breaker_plugin["id"]
+--
+--            local admin_res = assert(
+--                                    admin_client:patch(url, {
+--                    headers = {["Content-Type"] = "application/json"},
+--                    body = {
+--                        name = "advanced-router",
+--                        config = patch
+--                    }
+--                }))
+--            assert.res_status(200, admin_res)
+--            admin_client:close()
+--        end
+--
+--        assert(helpers.start_kong({
+--            database = strategy,
+--            plugins = "advanced-router",
+--            nginx_conf = "spec/fixtures/custom_nginx.template"
+--        }, nil, nil, fixtures.fixtures))
+--
+--
+--
+--        lazy_teardown(function()
+--            db:truncate()
+--        end)
+--
+--        before_each(function ()
+--
+--        end)
+--        after_each(function ()
+--            helpers.stop_kong()
+--        end)
+--
+--    end)
+--end
