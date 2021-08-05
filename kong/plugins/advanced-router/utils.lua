@@ -43,6 +43,7 @@ function _M.generate_signature_hash(s)
 end
 
 function _M.belongs(val, tbl)
+    print(require "inspect"(tbl))
     for _, v in pairs(tbl) do
         if v == val then
             return true

@@ -1,18 +1,46 @@
 local typedefs = require "kong.db.schema.typedefs"
 local json_safe = require "cjson.safe"
+local url = require "socket.url"
+
+local belongs = require "kong.plugins.advanced-router.utils".belongs
+
 
 local function json_validator(config_string)
-    local config_table, err = json_safe.decode(config_string)
+    local decoded, err = json_safe.decode(config_string)
 
-    if config_table == nil then
+    if decoded == nil then
         return nil, "Invalid Json " .. inspect(err)
+    end
+
+    return true, nil, decoded
+end
+
+local function validate_propositions_json(config_string)
+
+    local result, err, propositions_json = json_validator(config_string)
+
+    if not result then
+        return nil, err
+    end
+    local valid_schemes = {'http', 'https'}
+    for _, v in ipairs(propositions_json) do
+        local upstream_url = v['upstream_url']
+        local parsed_url = url.parse(upstream_url)
+        local scheme = parsed_url['port'] or 'http'
+        if not belongs(scheme, valid_schemes) then
+            return nil, "Invalid protocol: ".. scheme " for url: " .. upstream_url
+        end
+
+        if parsed_url['port'] and not tonumber(parsed_url['port']) then
+            return nil, "Invalid port: ".. parsed_url['port'] " for url: " .. upstream_url
+        end
     end
 
     return true
 end
 
 local function schema_validator(conf)
-    return json_validator(conf.propositions_json) and json_validator(conf.io_request_template)
+    return validate_propositions_json(conf.propositions_json) and json_validator(conf.io_request_template)
 end
 
 return {
@@ -27,7 +55,7 @@ return {
                     {
                         propositions_json = {
                             type = "string",
-                            default = "[\n    {\n      \"condition\":\"extract('a') == 'x' and extract('b') == 'y'\",\n      \"value\":\"alpha.com\"\n    },\n    {\n      \"condition\":\"extract('a') == z or extract('b') == 'z'\",\n      \"value\":\"beta.com\"\n    },\n    {\n      \"condition\":\"default\",\n      \"value\":\"default.com\"\n    }\n]"
+                            default = "[\n    {\n      \"condition\":\"extract('a') == 'x' and extract('b') == 'y'\",\n      \"upstream_url\":\"alpha.com\"\n    },\n    {\n      \"condition\":\"extract('a') == z or extract('b') == 'z'\",\n      \"upstream_url\":\"beta.com\"\n    },\n    {\n      \"condition\":\"default\",\n      \"upstream_url\":\"default.com\"\n    }\n]"
                         }
                     },
                     {

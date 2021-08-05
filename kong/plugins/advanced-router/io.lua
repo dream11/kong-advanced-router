@@ -78,8 +78,15 @@ function get_io_data_from_remote(request_data, conf)
             query = request_data.query
         }
     )
+
+    print(inspect(res))
+    print(inspect(err1))
     if not res or err1 then
         return nil, err1
+    end
+
+    if not err and res and res.status ~= 200 then
+        return nil, "IO call failed - Response status:" .. res.status
     end
 
     local bodyJson, err2 = cjson_safe.decode(res["body"])
