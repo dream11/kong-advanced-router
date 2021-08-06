@@ -5,10 +5,13 @@ local inspect = require "inspect"
 for _, strategy in helpers.each_strategy() do
 
     describe("circuit breaker plugin [#" .. strategy .. "]", function()
-        local mock_host = helpers.mock_upstream_host;
+        local service_a_host = 'service_a.com'
+        local service_b_host = 'service_b.com'
+        local service_default_host = 'service_default.com'
+        local service_io_call_host = 'service_io_call.com'
 
         function assert_upstream(expected, resp)
-            local fields_to_verify = {'host', 'port', 'request_uri', 'scheme'}
+            local fields_to_verify = { 'host', 'port', 'request_uri', 'scheme' }
             assert.are.same(expected['host'], resp['vars']['host'])
         end
 
@@ -32,30 +35,6 @@ for _, strategy in helpers.each_strategy() do
             service = test_service,
         }))
 
-        local io_call_route = assert(bp.routes:insert({
-            methods = { "GET" },
-            protocols = { "http" },
-            paths = { "/io_call" },
-            strip_path = false,
-            preserve_host = true,
-            service = test_service
-        }))
-        local io_response = {
-            data = {
-                a = 'x',
-                b = 'y'
-            }
-        }
-        --bp.plugins:insert {
-        --    name = "request-termination",
-        --    config = {
-        --        status_code = 200,
-        --        content_type = "application/json",
-        --        body = cjson.encode(io_response)
-        --    },
-        --    route = { id = io_call_route.id }
-        --}
-
         local upstream_route = assert(bp.routes:insert({
             methods = { "GET" },
             protocols = { "http" },
@@ -77,10 +56,12 @@ for _, strategy in helpers.each_strategy() do
             route = { id = upstream_route.id }
         }
 
+
+
         local propositions_json = {
-            { condition = "extract_from_io_response('data.a') == 'x' and extract_from_io_response('data.b') == 'y'", upstream_url = "http://service_abc_xyz.com/geta" },
-            { condition = "extract_from_io_response('a') == 'x' and extract_from_io_response('b') == 'z'", upstream_url = "http://service_fallback.com/getb" },
-            { condition = "default", upstream_url = "http://service_shard_1.com/getc" },
+            { condition = "extract_from_io_response('data.a') == 'x' and extract_from_io_response('data.b') == 'y'", upstream_url = "http://" .. service_a_host .. "/a" },
+            { condition = "extract_from_io_response('a') == 'x' and extract_from_io_response('b') == 'z'", upstream_url = "http://" .. service_b_host .. "/b" },
+            { condition = "default", upstream_url = "http://" .. service_default_host .. "/default" },
         }
 
         local io_request_template = {
@@ -93,7 +74,7 @@ for _, strategy in helpers.each_strategy() do
             name = "advanced-router",
             config = {
                 propositions_json = cjson.encode(propositions_json),
-                io_url = "http://service_io_call.com/get",
+                io_url = "http://".. service_io_call_host .."/io_call",
                 io_request_template = cjson.encode(io_request_template),
                 cache_io_response = true,
                 io_http_method = "GET",
@@ -107,17 +88,17 @@ for _, strategy in helpers.each_strategy() do
             dns_mock = helpers.dns_mock.new()
         }
         fixtures.dns_mock:SRV {
-            name = "service_abc_xyz.com",
+            name = service_a_host,
             target = "127.0.0.1",
             port = 15555
         }
         fixtures.dns_mock:SRV {
-            name = "service_fallback.com",
+            name = service_b_host,
             target = "127.0.0.1",
             port = 15555
         }
         fixtures.dns_mock:SRV {
-            name = "service_shard_1.com",
+            name = service_default_host,
             target = "127.0.0.1",
             port = 15555
         }
@@ -130,7 +111,7 @@ for _, strategy in helpers.each_strategy() do
         assert(helpers.start_kong({
             database = strategy,
             plugins = "bundled, advanced-router",
-            nginx_conf = "spec/fixtures/custom_nginx.template"
+            nginx_conf = "/kong-plugin/spec/fixtures/custom_nginx.template"
         }, nil, nil, fixtures))
 
         teardown(function()
@@ -177,7 +158,7 @@ for _, strategy in helpers.each_strategy() do
                 local res_body = assert(res:read_body())
                 print("res_body::" .. res_body)
                 res_body = cjson.decode(res_body)
-                assert_upstream({host='service_abc_xyz.com'}, res_body)
+                assert_upstream({ host = 'service_abc_xyz.com' }, res_body)
                 proxy_client:close()
             end)
 
