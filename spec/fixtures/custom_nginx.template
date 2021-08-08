@@ -8,7 +8,7 @@ error_log ${{PROXY_ERROR_LOG}} ${{LOG_LEVEL}};
 $(el.name) $(el.value);
 > end
 
-env KONG_DEFAULT_SERVICE_HOST_ENV; env KONG_IO_CALL_ENV;
+env KONG_SERVICE_ONE_HOST_ENV; env KONG_IO_CALL_HOST_ENV;
 
 events {
     # injected nginx_events_* directives
