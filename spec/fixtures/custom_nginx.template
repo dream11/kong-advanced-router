@@ -533,14 +533,26 @@ http {
                 return mu.filter_access_by_method("GET")
             }
             content_by_lua_block {
-                local mu = require "spec.fixtures.mock_upstream"
-                local incoming_headers = ngx.req.get_headers()
+
                 local cjson = require "cjson.safe"
                 local inspect = require "inspect"
+
+                local mu = require "spec.fixtures.mock_upstream"
+                local incoming_headers = ngx.req.get_headers()
+                local uri_args = ngx.req.get_uri_args()
+                ngx.req.read_body()
+                local request_body = ngx.req.get_body_data()
+                if request_body then
+                    request_body = cjson.decode(request_body)
+                end
+
                 ngx.header["Content-Type"]  = "application/json"
-                print("incoming header")
-                print(inspect(incoming_headers))
+                print("incoming_headers::" .. inspect(incoming_headers))
+                print("uri_args::" .. inspect(uri_args))
+                print("request_body::" .. inspect(request_body))
+
                 local data = {}
+
                 if incoming_headers.service_host then
 
                         data = {
@@ -548,7 +560,18 @@ http {
                             route = incoming_headers.route,
                             roundstarttime = incoming_headers.roundstarttime
                         }
-
+                elseif uri_args.service_host then
+                       data = {
+                           service_host = uri_args.service_host,
+                           route = uri_args.route,
+                           roundstarttime = uri_args.roundstarttime
+                       }
+               elseif request_body.service_host then
+                      data = {
+                          service_host = request_body.service_host,
+                          route = request_body.route,
+                          roundstarttime = request_body.roundstarttime
+                      }
                 end
                 return mu.send_default_json_response({data = data})
             }
