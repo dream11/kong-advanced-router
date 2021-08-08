@@ -535,32 +535,21 @@ http {
             content_by_lua_block {
                 local mu = require "spec.fixtures.mock_upstream"
                 local incoming_headers = ngx.req.get_headers()
-                local data = {
-                    data = {
-                        host = '-one',
-                        route = '/one'
-                    }
-                }
-                local resp_type = incoming_headers['io-resp-type']
-                if resp_type == 'two' then
-                    data = {
-                        data = {
-                            host = '-two',
-                            route = '/two',
-                            RoundStartTime = "2025-10-17T11:15:14.000Z"
-                        }
-                    }
-                elseif resp_type == 'default' then
-                   data = {
-                       data = {
-                           host = '-default',
-                           route = '/default',
-                           RoundStartTime = "2025-10-17T11:15:14.000Z"
-                       }
-                   }
+                local cjson = require "cjson.safe"
+                ngx.header["Content-Type"]  = "application/json"
+                if incoming_headers.data then
+                    return ngx.say(cjson.encode({data = incoming_headers}))
                 end
 
-                return mu.send_default_json_response(data)
+                local uri_args = ngx.req.get_uri_args()
+                if uri_args.data then
+                    return ngx.say(cjson.encode({data = uri_args}))
+                end
+
+                ngx.req.read_body()  -- explicitly read the req body
+                local body_data = ngx.req.get_body_data()
+                return ngx.say(cjson.encode({data = body_data}))
+
             }
         }
 
