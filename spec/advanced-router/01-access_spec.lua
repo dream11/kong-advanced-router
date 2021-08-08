@@ -47,7 +47,9 @@ for _, strategy in helpers.each_strategy() do
 
         local io_request_template = {
             headers = {
-                ['io-resp-type'] = "headers.io-resp-type"
+                ['host'] = "headers.host",
+                ['route'] = "headers.route",
+                ['RoundStartTime'] = "headers.RoundStartTime"
             }
         }
 

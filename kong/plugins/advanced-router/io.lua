@@ -20,13 +20,15 @@ local function get_http_client(conf)
 end
 
 function extract_from_request(object, key)
+    local value
     if object == 'headers' then
-        local r = extract(key, kong.request.get_headers())
-        return r
+        value = extract(string.lower(key), kong.request.get_headers())
+        return value
     else
-        local r = extract(key, kong.request.get_query())
-        return r
+        value = extract(key, kong.request.get_query())
+        return value
     end
+    return value
 end
 
 function extract_io_data_from_request(conf)
