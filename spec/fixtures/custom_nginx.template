@@ -540,18 +540,17 @@ http {
                 ngx.header["Content-Type"]  = "application/json"
                 print("incoming header")
                 print(inspect(incoming_headers))
+                local data = {}
                 if incoming_headers.service_host then
-                    return mu.send_default_json_response({
+
                         data = {
                             service_host = incoming_headers.service_host,
                             route = incoming_headers.route,
                             roundstarttime = incoming_headers.roundstarttime
                         }
-                    }))
+
                 end
-                return mu.send_default_json_response()
-
-
+                return mu.send_default_json_response({data = data})
             }
         }
 

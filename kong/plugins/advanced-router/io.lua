@@ -28,6 +28,7 @@ function extract_from_request(object, key)
         value = extract(key, kong.request.get_query())
         return value
     end
+    print("returning::"..inspect(value))
     return value
 end
 
@@ -81,7 +82,7 @@ function get_io_data_from_remote(request_data, conf)
         }
     )
 
-    print("Data from I/O::" .. inspect(res))
+
     print(inspect(err1))
     if not res or err1 then
         return nil, err1
@@ -95,7 +96,7 @@ function get_io_data_from_remote(request_data, conf)
     if not bodyJson then
         return nil, err2
     end
-
+    print("Data from I/O::" .. inspect(bodyJson.data))
     local cacheTTL
     if conf.cache_io_response then
         cacheTTL = res.headers[conf.cache_ttl_header] or conf["default_edge_ttl_sec"]

@@ -23,9 +23,6 @@ function get_timestamp_utc(date_string)
 end
 
 function extract_from_io_response(key)
-    print("key::" .. inspect(key))
-    print("data::" .. inspect(kong.ctx.plugin.io_data))
-    print(type(kong.ctx.plugin.io_data))
     return extract(key, kong.ctx.plugin.io_data)
 end
 
@@ -69,7 +66,7 @@ function set_upstream(upstream_url)
     local port = tonumber(parsed_url['port']) or 80
     kong.service.request.set_scheme(scheme)
     kong.log.debug("Upstream URL::" .. inspect(upstream_url))
-    kong.log.debug("Parsed URL::" .. inspect(parsed_url))
+    print("Parsed URL::" .. inspect(parsed_url))
     kong.service.set_target(host, port)
     if path then
         kong.service.request.set_path(path)

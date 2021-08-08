@@ -8,7 +8,7 @@ for _, strategy in helpers.each_strategy() do
         local KONG_IO_CALL_ENV = "-io-call"
         local KONG_DEFAULT_SERVICE_HOST_ENV = "-default"
         local service_one_host = 'service-one.com'
-        local service_two_host_variable = 'service%data.host%.com'
+        local service_two_host_variable = 'service%data.service_host%.com'
         local service_two_host = 'service-two.com'
         local service_default_host = 'service-default.com'
         local service_default_host_variable = 'service' .. KONG_DEFAULT_SERVICE_HOST_ENV .. '.com'
@@ -41,7 +41,7 @@ for _, strategy in helpers.each_strategy() do
 
         local propositions_json = {
             { condition = "extract_from_io_response('data.service_host') == '-one' and extract_from_io_response('data.route') == '/one'", upstream_url = "http://" .. service_one_host .. service_one_route },
-            { condition = "get_timestamp_utc(extract_from_io_response('data.RoundStartTime')) > get_current_timestamp_utc() and extract_from_io_response('data.service_host') == '-two'", upstream_url = "http://" .. service_two_host_variable .. service_two_route },
+            { condition = "get_timestamp_utc(extract_from_io_response('data.roundstarttime')) > get_current_timestamp_utc() and extract_from_io_response('data.service_host') == '-two'", upstream_url = "http://" .. service_two_host_variable .. service_two_route },
             { condition = "default", upstream_url = "http://" .. service_default_host_variable .. service_default_route },
         }
 
@@ -49,7 +49,7 @@ for _, strategy in helpers.each_strategy() do
             headers = {
                 ['service_host'] = "headers.service_host",
                 ['route'] = "headers.route",
-                ['RoundStartTime'] = "headers.RoundStartTime"
+                ['roundstarttime'] = "headers.roundstarttime"
             }
         }
 
@@ -102,8 +102,7 @@ for _, strategy in helpers.each_strategy() do
         }, nil, nil, fixtures))
 
         function assert_upstream(expected, resp)
-            local fields_to_verify = { 'service_host', 'uri', 'scheme' }
-
+            local fields_to_verify = { 'host', 'uri', 'scheme' }
             for _, v in ipairs(fields_to_verify) do
                 assert.are.same(expected[v], resp['vars'][v])
             end
@@ -133,14 +132,14 @@ for _, strategy in helpers.each_strategy() do
         it("I/O data from header #service_one",
             function()
                 local req_data = { headers = { service_host = '-one', route = '/one' } }
-                local expected_resp = { service_host = service_one_host, uri = service_one_route, scheme = 'http' }
+                local expected_resp = { host = service_one_host, uri = service_one_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
 
         it("should remain closed if request count <=  min_calls_in_window & err % >= failure_percent_threshold #service_two",
             function()
-                local req_data = { headers = { service_host = '-two', route = '/two', RoundStartTime = "2025-10-17T11:15:14.000Z" } }
-                local expected_resp = { service_host = service_two_host, uri = service_two_route, scheme = 'http' }
+                local req_data = { headers = { service_host = '-two', route = '/two', roundstarttime = "2025-10-17T11:15:14.000Z" } }
+                local expected_resp = { host = service_two_host, uri = service_two_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
 
@@ -149,9 +148,9 @@ for _, strategy in helpers.each_strategy() do
                 local req_data = { headers = {
                     service_host = '-default',
                     route = '/default',
-                    RoundStartTime = "2025-10-17T11:15:14.000Z"
+                    roundstarttime = "2025-10-17T11:15:14.000Z"
                 } }
-                local expected_resp = { service_host = service_default_host, uri = service_default_route, scheme = 'http' }
+                local expected_resp = { host = service_default_host, uri = service_default_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
 
