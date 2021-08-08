@@ -23,8 +23,8 @@ function get_timestamp_utc(date_string)
 end
 
 function extract_from_io_response(key)
-    print("key::" .. inspect(key))
-    print("data::" .. inspect(kong.ctx.plugin.io_data))
+    --print("key::" .. inspect(key))
+    --print("data::" .. inspect(kong.ctx.plugin.io_data))
     print(type(kong.ctx.plugin.io_data))
     return extract(key, kong.ctx.plugin.io_data)
 end

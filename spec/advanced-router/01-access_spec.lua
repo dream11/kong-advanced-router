@@ -4,18 +4,18 @@ local inspect = require "inspect"
 
 for _, strategy in helpers.each_strategy() do
 
-    describe("circuit breaker plugin [#" .. strategy .. "]", function()
+    describe("advanced router plugin [#" .. strategy .. "]", function()
         local service_a_host = 'service_a.com'
         local service_b_host = 'service_b.com'
         local service_default_host = 'service_default.com'
         local service_io_call_host = 'service_io_call.com'
+        local service_a_route = '/service_a_route'
+        local service_b_route = '/service_b_route'
+        local service_default_route = '/service_default_route'
 
-        function assert_upstream(expected, resp)
-            local fields_to_verify = { 'host', 'port', 'request_uri', 'scheme' }
-            assert.are.same(expected['host'], resp['vars']['host'])
-        end
 
-        local bp, db = helpers.get_db_utils(strategy, { "routes", "services", "plugins" }, { "advanced-router" });
+
+        local bp = helpers.get_db_utils(strategy, { "routes", "services", "plugins" }, { "advanced-router" });
 
         local test_service = bp.services:insert(
             {
@@ -35,46 +35,23 @@ for _, strategy in helpers.each_strategy() do
             service = test_service,
         }))
 
-        local upstream_route = assert(bp.routes:insert({
-            methods = { "GET" },
-            protocols = { "http" },
-            paths = { "/upstream_route" },
-            strip_path = false,
-            preserve_host = true,
-            service = test_service
-        }))
-        local upstream_route_response = {
-            success = true
-        }
-        bp.plugins:insert {
-            name = "request-termination",
-            config = {
-                status_code = 200,
-                content_type = "application/json",
-                body = cjson.encode(upstream_route_response)
-            },
-            route = { id = upstream_route.id }
-        }
-
-
-
         local propositions_json = {
-            { condition = "extract_from_io_response('data.a') == 'x' and extract_from_io_response('data.b') == 'y'", upstream_url = "http://" .. service_a_host .. "/a" },
-            { condition = "extract_from_io_response('a') == 'x' and extract_from_io_response('b') == 'z'", upstream_url = "http://" .. service_b_host .. "/b" },
-            { condition = "default", upstream_url = "http://" .. service_default_host .. "/default" },
+            { condition = "extract_from_io_response('data.a') == 'x' and extract_from_io_response('data.b') == 'y'", upstream_url = "http://" .. service_a_host .. service_a_route },
+            { condition = "extract_from_io_response('data.a') == 'x' and extract_from_io_response('data.b') == 'z'", upstream_url = "http://" .. service_b_host .. service_b_route },
+            { condition = "default", upstream_url = "http://" .. service_default_host .. service_default_route },
         }
 
         local io_request_template = {
             headers = {
-                ['resp-type'] = "headers.resp-type"
+                ['io-resp-type'] = "headers.io-resp-type"
             }
         }
 
-        local plugin = assert(bp.plugins:insert {
+        assert(bp.plugins:insert {
             name = "advanced-router",
             config = {
                 propositions_json = cjson.encode(propositions_json),
-                io_url = "http://".. service_io_call_host .."/io_call",
+                io_url = "http://" .. service_io_call_host .. "/io_call",
                 io_request_template = cjson.encode(io_request_template),
                 cache_io_response = true,
                 io_http_method = "GET",
@@ -103,19 +80,43 @@ for _, strategy in helpers.each_strategy() do
             port = 15555
         }
         fixtures.dns_mock:SRV {
-            name = "service_io_call.com",
+            name = service_io_call_host,
             target = "127.0.0.1",
             port = 15555
         }
-        print("Starting kong")
+
         assert(helpers.start_kong({
             database = strategy,
             plugins = "bundled, advanced-router",
             nginx_conf = "/kong-plugin/spec/fixtures/custom_nginx.template"
         }, nil, nil, fixtures))
 
+        function assert_upstream(expected, resp)
+            local fields_to_verify = { 'host', 'uri', 'scheme' }
+
+            for _, v in ipairs(fields_to_verify) do
+                assert.are.same(expected[v], resp['vars'][v])
+            end
+        end
+
+        function get_and_assert_upstream(req_headers, expected_resp)
+            local proxy_client = helpers.proxy_client()
+
+            local res = assert(proxy_client:send(
+                {
+                    method = "GET",
+                    path = "/main_route",
+                    headers = kong.table.merge({ ['Content-type'] = 'application/json'},req_headers)
+
+                }))
+            assert.are.same(200, res.status)
+            local res_body = assert(res:read_body())
+            res_body = cjson.decode(res_body)
+            assert_upstream(expected_resp, res_body)
+            proxy_client:close()
+        end
+
         teardown(function()
-            print("Stopping kong")
             helpers.stop_kong()
         end)
 
@@ -126,40 +127,21 @@ for _, strategy in helpers.each_strategy() do
 
         end)
 
-        it("should remain closed if request count <=  min_calls_in_window & err % >= failure_percent_threshold ",
+        it("should remain closed if request count <=  min_calls_in_window & err % >= failure_percent_threshold #service_a",
             function()
-                --local proxy_client = helpers.proxy_client()
-                --local res = assert(proxy_client:send(
-                --    {
-                --        method = "GET",
-                --        path = "/io_call",
-                --    }))
-                --
-                --local res_body = assert(res:read_body())
-                --print("res_body::" .. res_body)
-                --res_body = cjson.decode(res_body)
-                --
-                --proxy_client:close()
+                get_and_assert_upstream({['io-resp-type'] = 'a'}, { host = service_a_host, uri = service_a_route, scheme = 'http' })
+            end)
 
-                local proxy_client = helpers.proxy_client()
-                local res = assert(proxy_client:send(
-                    {
-                        method = "GET",
-                        path = "/main_route",
-                        headers = {
-                            ['Content-type'] = 'application/json',
-                            ['resp-type'] = 'b'
-                        }
-                    }))
-                print(inspect(res))
-                local res_body = assert(res:read_body())
-                print("res_body::" .. res_body)
-                assert.are.same(200, res.status)
-                local res_body = assert(res:read_body())
-                print("res_body::" .. res_body)
-                res_body = cjson.decode(res_body)
-                assert_upstream({ host = 'service_abc_xyz.com' }, res_body)
-                proxy_client:close()
+        it("should remain closed if request count <=  min_calls_in_window & err % >= failure_percent_threshold #service_b",
+            function()
+
+                get_and_assert_upstream({['io-resp-type'] = 'b'}, { host = service_a_host, uri = service_a_route, scheme = 'http' })
+            end)
+
+        it("should remain closed if request count <=  min_calls_in_window & err % >= failure_percent_threshold #default",
+            function()
+
+                get_and_assert_upstream({['io-resp-type'] = 'c'}, { host = service_a_host, uri = service_a_route, scheme = 'http' })
             end)
 
     end)

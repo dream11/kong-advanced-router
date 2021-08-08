@@ -532,7 +532,71 @@ http {
             }
             content_by_lua_block {
                 local mu = require "spec.fixtures.mock_upstream"
-                return mu.send_default_json_response({data={a='x', b='y'}})
+                local incoming_headers = ngx.req.get_headers()
+                local data = {
+                    data = {
+                        a = 'x',
+                        b = 'y'
+                    }
+                }
+                local resp_type = incoming_headers['io-resp-type']
+                if resp_type == 'b' then
+                    data = {
+                        data = {
+                            a = 'x',
+                            b = 'z'
+                        }
+                    }
+                elseif resp_type == 'default' then
+                   data = {
+                       data = {
+                           b = 'z'
+                       }
+                   }
+                end
+
+                return mu.send_default_json_response(data)
+            }
+        }
+
+        location /main_route {
+            access_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.filter_access_by_method("GET")
+            }
+            content_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.send_default_json_response()
+            }
+        }
+        location /service_a_route {
+            access_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.filter_access_by_method("GET")
+            }
+            content_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.send_default_json_response()
+            }
+        }
+        location /service_b_route {
+            access_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.filter_access_by_method("GET")
+            }
+            content_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.send_default_json_response()
+            }
+        }
+        location /service_default_route {
+            access_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.filter_access_by_method("GET")
+            }
+            content_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.send_default_json_response()
             }
         }
 
