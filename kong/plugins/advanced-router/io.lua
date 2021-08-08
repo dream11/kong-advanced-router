@@ -79,7 +79,7 @@ function get_io_data_from_remote(request_data, conf)
         }
     )
 
-    print(inspect(res))
+    print("Data from I/O::" .. inspect(res))
     print(inspect(err1))
     if not res or err1 then
         return nil, err1
@@ -123,6 +123,7 @@ end
 
 function create_io_request(conf)
     local io_request = extract_io_data_from_request(conf)
+    print("conf" .. inspect(conf))
     io_request["io_url"] = replaceStringEnvVariables(conf.io_url)
     io_request["io_http_method"] = conf.io_http_method
     return io_request

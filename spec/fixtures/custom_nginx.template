@@ -8,6 +8,8 @@ error_log ${{PROXY_ERROR_LOG}} ${{LOG_LEVEL}};
 $(el.name) $(el.value);
 > end
 
+env KONG_DEFAULT_SERVICE_HOST_ENV; env KONG_IO_CALL_ENV;
+
 events {
     # injected nginx_events_* directives
 > for _, el in ipairs(nginx_events_directives) do
@@ -525,7 +527,7 @@ http {
             }
         }
 
-        location /io_call {
+        location /io-call {
             access_by_lua_block {
                 local mu = require "spec.fixtures.mock_upstream"
                 return mu.filter_access_by_method("GET")
@@ -535,22 +537,25 @@ http {
                 local incoming_headers = ngx.req.get_headers()
                 local data = {
                     data = {
-                        a = 'x',
-                        b = 'y'
+                        host = '-one',
+                        route = '/one'
                     }
                 }
                 local resp_type = incoming_headers['io-resp-type']
-                if resp_type == 'b' then
+                if resp_type == 'two' then
                     data = {
                         data = {
-                            a = 'x',
-                            b = 'z'
+                            host = '-two',
+                            route = '/two',
+                            RoundStartTime = "2025-10-17T11:15:14.000Z"
                         }
                     }
                 elseif resp_type == 'default' then
                    data = {
                        data = {
-                           b = 'z'
+                           host = '-default',
+                           route = '/default',
+                           RoundStartTime = "2025-10-17T11:15:14.000Z"
                        }
                    }
                 end
@@ -559,7 +564,7 @@ http {
             }
         }
 
-        location /main_route {
+        location /main-route {
             access_by_lua_block {
                 local mu = require "spec.fixtures.mock_upstream"
                 return mu.filter_access_by_method("GET")
@@ -569,7 +574,7 @@ http {
                 return mu.send_default_json_response()
             }
         }
-        location /service_a_route {
+        location /service-one-route {
             access_by_lua_block {
                 local mu = require "spec.fixtures.mock_upstream"
                 return mu.filter_access_by_method("GET")
@@ -579,7 +584,7 @@ http {
                 return mu.send_default_json_response()
             }
         }
-        location /service_b_route {
+        location /service-two-route {
             access_by_lua_block {
                 local mu = require "spec.fixtures.mock_upstream"
                 return mu.filter_access_by_method("GET")
@@ -589,7 +594,7 @@ http {
                 return mu.send_default_json_response()
             }
         }
-        location /service_default_route {
+        location /service-default-route {
             access_by_lua_block {
                 local mu = require "spec.fixtures.mock_upstream"
                 return mu.filter_access_by_method("GET")

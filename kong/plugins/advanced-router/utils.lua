@@ -1,6 +1,7 @@
 local pl_utils = require "pl.utils"
 local sha256 = require "resty.sha256"
 local encode_base64 = ngx.encode_base64
+local inspect = require "inspect"
 
 local _M = {}
 
@@ -8,15 +9,18 @@ function _M.replaceStringEnvVariables(s, data)
     return
     string.gsub(
         s,
-        "%%[A-Za-z_]+%%",
+        "%%[A-Za-z_%.]+%%",
         function(str)
+
             local variable = string.sub(str, 2, string.len(str) - 1)
+            print("string="..variable)
             if data then
                 local value_from_data = _M.extract(variable, data)
                 if value_from_data then
                     return value_from_data
                 end
             end
+            print("from env="..inspect(os.getenv(variable)))
             return os.getenv(variable)
         end
     )
@@ -43,7 +47,6 @@ function _M.generate_signature_hash(s)
 end
 
 function _M.belongs(val, tbl)
-    print(require "inspect"(tbl))
     for _, v in pairs(tbl) do
         if v == val then
             return true

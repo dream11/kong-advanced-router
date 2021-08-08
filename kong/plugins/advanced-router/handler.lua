@@ -23,8 +23,8 @@ function get_timestamp_utc(date_string)
 end
 
 function extract_from_io_response(key)
-    --print("key::" .. inspect(key))
-    --print("data::" .. inspect(kong.ctx.plugin.io_data))
+    print("key::" .. inspect(key))
+    print("data::" .. inspect(kong.ctx.plugin.io_data))
     print(type(kong.ctx.plugin.io_data))
     return extract(key, kong.ctx.plugin.io_data)
 end
@@ -78,6 +78,9 @@ function set_upstream(upstream_url)
 end
 
 function AdvancedRouterHandler:access(conf)
+    print("KONG_HOST_FROM_ENV"..inspect(os.getenv('KONG_HOST_FROM_ENV')))
+    print("KONG_IO_CALL_ENV"..inspect(os.getenv('KONG_IO_CALL_ENV')))
+
     local io_data, err = get_io_data(conf)
     if err then
         kong.log.err("Error in getting io data" .. inspect(err))
@@ -89,7 +92,7 @@ function AdvancedRouterHandler:access(conf)
     if not upstream_url then
         return kong.response.exit(500, "Not able to resolve upstream in advanced router")
     end
-    upstream_url = replaceStringEnvVariables(upstream_url)
+    upstream_url = replaceStringEnvVariables(upstream_url, io_data)
     set_upstream(upstream_url)
 end
 
