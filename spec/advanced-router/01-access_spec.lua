@@ -4,7 +4,7 @@ local inspect = require "inspect"
 
 for _, strategy in helpers.each_strategy() do
 
-    describe("advanced router plugin [#" .. strategy .. "]", function()
+    describe("advanced router plugin I/O data from headers [#" .. strategy .. "]", function()
         local KONG_IO_CALL_ENV = "-io-call"
         local KONG_DEFAULT_SERVICE_HOST_ENV = "-default"
         local service_one_host = 'service-one.com'
@@ -107,14 +107,14 @@ for _, strategy in helpers.each_strategy() do
             end
         end
 
-        function get_and_assert_upstream(req_headers, expected_resp)
+        function get_and_assert_upstream(req_data, expected_resp)
             local proxy_client = helpers.proxy_client()
 
             local res = assert(proxy_client:send(
                 {
                     method = "GET",
                     path = "/main-route",
-                    headers = kong.table.merge({ ['Content-type'] = 'application/json' }, req_headers)
+                    headers = kong.table.merge({ ['Content-type'] = 'application/json' }, req_data.headers)
 
                 }))
             assert.are.same(200, res.status)
@@ -128,20 +128,29 @@ for _, strategy in helpers.each_strategy() do
             helpers.stop_kong()
         end)
 
-
-        it("should remain closed if request count <=  min_calls_in_window & err % >= failure_percent_threshold #service_one",
+        it("I/O data from header #service_one",
             function()
-                get_and_assert_upstream({ ['io-resp-type'] = 'one' }, { host = service_one_host, uri = service_one_route, scheme = 'http' })
+                local req_data = { headers = { host = '-one', route = '/one' } }
+                local expected_resp = { host = service_one_host, uri = service_one_route, scheme = 'http' }
+                get_and_assert_upstream(req_data, expected_resp)
             end)
 
         it("should remain closed if request count <=  min_calls_in_window & err % >= failure_percent_threshold #service_two",
             function()
-                get_and_assert_upstream({ ['io-resp-type'] = 'two' }, { host = service_two_host, uri = service_two_route, scheme = 'http' })
+                local req_data = { headers = { host = '-two', route = '/two', RoundStartTime = "2025-10-17T11:15:14.000Z" } }
+                local expected_resp = { host = service_two_host, uri = service_two_route, scheme = 'http' }
+                get_and_assert_upstream(req_data, expected_resp)
             end)
 
         it("should remain closed if request count <=  min_calls_in_window & err % >= failure_percent_threshold #service_default",
             function()
-                get_and_assert_upstream({ ['io-resp-type'] = 'default' }, { host = service_default_host, uri = service_default_route, scheme = 'http' })
+                local req_data = { headers = {
+                    host = '-default',
+                    route = '/default',
+                    RoundStartTime = "2025-10-17T11:15:14.000Z"
+                } }
+                local expected_resp = { host = service_default_host, uri = service_default_route, scheme = 'http' }
+                get_and_assert_upstream(req_data, expected_resp)
             end)
 
     end)
