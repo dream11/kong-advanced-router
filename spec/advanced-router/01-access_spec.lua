@@ -26,13 +26,11 @@ for _, strategy in helpers.each_strategy() do
 
         local bp, db = helpers.get_db_utils(strategy, { "routes", "services", "plugins" }, { "advanced-router" });
 
-        print("Executing setup")
 
         local fixtures = {
             dns_mock = helpers.dns_mock.new()
         }
 
-        print("Setting SRV for " .. inspect({ service_one_host, service_two_host, service_default_host, service_io_call_host }))
         fixtures.dns_mock:SRV {
             name = service_one_host,
             target = "127.0.0.1",
@@ -147,7 +145,6 @@ for _, strategy in helpers.each_strategy() do
             end)
 
             teardown(function()
-                print("Executing teardown")
                 helpers.stop_kong()
                 db:truncate()
             end)
@@ -191,7 +188,6 @@ for _, strategy in helpers.each_strategy() do
             end)
 
             teardown(function()
-                print("Executing teardown")
                 helpers.stop_kong()
                 db:truncate()
             end)
@@ -235,7 +231,6 @@ for _, strategy in helpers.each_strategy() do
             end)
 
             teardown(function()
-                print("Executing teardown")
                 helpers.stop_kong()
                 db:truncate()
             end)
@@ -279,7 +274,6 @@ for _, strategy in helpers.each_strategy() do
             end)
 
             teardown(function()
-                print("Executing teardown")
                 helpers.stop_kong()
                 db:truncate()
             end)
