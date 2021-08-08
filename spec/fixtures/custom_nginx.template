@@ -536,19 +536,21 @@ http {
                 local mu = require "spec.fixtures.mock_upstream"
                 local incoming_headers = ngx.req.get_headers()
                 local cjson = require "cjson.safe"
+                local inspect = require "inspect"
                 ngx.header["Content-Type"]  = "application/json"
-                if incoming_headers.data then
-                    return ngx.say(cjson.encode({data = incoming_headers}))
+                print("incoming header")
+                print(inspect(incoming_headers))
+                if incoming_headers.service_host then
+                    return mu.send_default_json_response({
+                        data = {
+                            service_host = incoming_headers.service_host,
+                            route = incoming_headers.route,
+                            roundstarttime = incoming_headers.roundstarttime
+                        }
+                    }))
                 end
+                return mu.send_default_json_response()
 
-                local uri_args = ngx.req.get_uri_args()
-                if uri_args.data then
-                    return ngx.say(cjson.encode({data = uri_args}))
-                end
-
-                ngx.req.read_body()  -- explicitly read the req body
-                local body_data = ngx.req.get_body_data()
-                return ngx.say(cjson.encode({data = body_data}))
 
             }
         }
