@@ -66,7 +66,7 @@ function set_upstream(upstream_url)
     local port = tonumber(parsed_url['port']) or 80
     kong.service.request.set_scheme(scheme)
     kong.log.debug("Upstream URL::" .. inspect(upstream_url))
-    print("Parsed URL::" .. inspect(parsed_url))
+    kong.log.debug("Parsed Upstream URL::" .. inspect(parsed_url))
     kong.service.set_target(host, port)
     if path then
         kong.service.request.set_path(path)
@@ -75,9 +75,6 @@ function set_upstream(upstream_url)
 end
 
 function AdvancedRouterHandler:access(conf)
-    print("KONG_HOST_FROM_ENV"..inspect(os.getenv('KONG_HOST_FROM_ENV')))
-    print("KONG_IO_CALL_ENV"..inspect(os.getenv('KONG_IO_CALL_ENV')))
-
     local io_data, err = get_io_data(conf)
     if err then
         kong.log.err("Error in getting io data" .. inspect(err))

@@ -13,14 +13,14 @@ function _M.replaceStringEnvVariables(s, data)
         function(str)
 
             local variable = string.sub(str, 2, string.len(str) - 1)
-            print("string="..variable)
+            kong.log.debug("string=" .. variable)
             if data then
                 local value_from_data = _M.extract(variable, data)
                 if value_from_data then
                     return value_from_data
                 end
             end
-            print("from env="..inspect(os.getenv(variable)))
+            kong.log.debug("from env=" .. inspect(os.getenv(variable)))
             return os.getenv(variable)
         end
     )
