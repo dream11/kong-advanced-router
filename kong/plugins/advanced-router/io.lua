@@ -20,13 +20,15 @@ local function get_http_client(conf)
 end
 
 function extract_from_request(object, key)
+    local value
     if object == 'headers' then
-        local r = extract(key, kong.request.get_headers())
-        return r
+        value = extract(string.lower(key), kong.request.get_headers())
+        return value
     else
-        local r = extract(key, kong.request.get_query())
-        return r
+        value = extract(key, kong.request.get_query())
+        return value
     end
+    return value
 end
 
 function extract_io_data_from_request(conf)
@@ -37,7 +39,6 @@ function extract_io_data_from_request(conf)
         body = {}
     }
     local req_parts = { "headers", "query", "body" }
-
     for _, part in ipairs(req_parts) do
         if io_request_template[part] then
             for key, value in pairs(io_request_template[part]) do
@@ -55,7 +56,6 @@ function extract_io_data_from_request(conf)
             end
         end
     end
-
     return io_req
 end
 
@@ -78,15 +78,18 @@ function get_io_data_from_remote(request_data, conf)
             query = request_data.query
         }
     )
+    kong.log.debug("IO call error::" .. inspect(err1))
     if not res or err1 then
         return nil, err1
     end
-
+    if not err1 and res and res.status ~= 200 then
+        return nil, "IO call failed - Response status:" .. res.status
+    end
     local bodyJson, err2 = cjson_safe.decode(res["body"])
     if not bodyJson then
         return nil, err2
     end
-
+    kong.log.debug("Data from I/O::" .. inspect(bodyJson.data))
     local cacheTTL
     if conf.cache_io_response then
         cacheTTL = res.headers[conf.cache_ttl_header] or conf["default_edge_ttl_sec"]
@@ -116,6 +119,7 @@ end
 
 function create_io_request(conf)
     local io_request = extract_io_data_from_request(conf)
+    kong.log.debug("conf" .. inspect(conf))
     io_request["io_url"] = replaceStringEnvVariables(conf.io_url)
     io_request["io_http_method"] = conf.io_http_method
     return io_request

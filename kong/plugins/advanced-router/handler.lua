@@ -28,9 +28,9 @@ end
 
 function generate_boolean_function(proposition)
     if proposition['condition'] == 'default' then
-        return assert(loadstring("return " .. "\"" .. proposition["value"] .. "\""))
+        return assert(loadstring("return " .. "\"" .. proposition["upstream_url"] .. "\""))
     end
-    return assert(loadstring("if " .. proposition["condition"] .. "then return " .. "\"" .. proposition["value"] .. "\"" .. " end"))
+    return assert(loadstring("if " .. proposition["condition"] .. "then return " .. "\"" .. proposition["upstream_url"] .. "\"" .. " end"))
 end
 
 function get_upstream_url(conf)
@@ -60,10 +60,13 @@ end
 
 function set_upstream(upstream_url)
     local parsed_url = url.parse(upstream_url)
+    local scheme = parsed_url['port'] or 'http'
     local host = parsed_url['host']
     local path = parsed_url['path']
     local port = tonumber(parsed_url['port']) or 80
-    kong.log.debug("Upstream set by advanced router::" .. inspect(upstream_url))
+    kong.service.request.set_scheme(scheme)
+    kong.log.debug("Upstream URL::" .. inspect(upstream_url))
+    kong.log.debug("Parsed Upstream URL::" .. inspect(parsed_url))
     kong.service.set_target(host, port)
     if path then
         kong.service.request.set_path(path)
@@ -75,7 +78,7 @@ function AdvancedRouterHandler:access(conf)
     local io_data, err = get_io_data(conf)
     if err then
         kong.log.err("Error in getting io data" .. inspect(err))
-        return kong.response.exit(500, "Error in getting io data")
+        return kong.response.exit(500, { error = "Error in getting io data" .. inspect(err) })
     end
     kong.ctx.plugin.io_data = io_data
 
@@ -83,7 +86,7 @@ function AdvancedRouterHandler:access(conf)
     if not upstream_url then
         return kong.response.exit(500, "Not able to resolve upstream in advanced router")
     end
-    upstream_url = replaceStringEnvVariables(upstream_url)
+    upstream_url = replaceStringEnvVariables(upstream_url, io_data)
     set_upstream(upstream_url)
 end
 

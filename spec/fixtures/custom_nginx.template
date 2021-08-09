@@ -8,7 +8,7 @@ error_log ${{PROXY_ERROR_LOG}} ${{LOG_LEVEL}};
 $(el.name) $(el.value);
 > end
 
-env ENV_ONE; env ENV_TWO;
+env KONG_SERVICE_ONE_HOST_ENV; env KONG_IO_CALL_HOST_ENV;
 
 events {
     # injected nginx_events_* directives
@@ -447,16 +447,6 @@ http {
             }
         }
 
-         location /get {
-            default_type application/json;
-            content_by_lua_block {
-                Kong.status_content()
-            }
-            header_filter_by_lua_block {
-                Kong.status_header_filter()
-            }
-        }
-
         location /nginx_status {
             internal;
             access_log off;
@@ -551,15 +541,94 @@ http {
             }
         }
 
-        location /gethost {
+        location /io-call {
             access_by_lua_block {
                 local mu = require "spec.fixtures.mock_upstream"
                 return mu.filter_access_by_method("GET")
             }
             content_by_lua_block {
-                local incoming_headers = ngx.req.get_headers()
+
+                local cjson = require "cjson.safe"
+                local inspect = require "inspect"
+
                 local mu = require "spec.fixtures.mock_upstream"
-                return mu.send_default_json_response({}, {["incoming-host"] = incoming_headers["host"]})
+                local incoming_headers = ngx.req.get_headers()
+                local uri_args = ngx.req.get_uri_args()
+                ngx.req.read_body()
+                local request_body = ngx.req.get_body_data()
+                if request_body then
+                    request_body = cjson.decode(request_body)
+                end
+
+                ngx.header["Content-Type"]  = "application/json"
+                print("incoming_headers::" .. inspect(incoming_headers))
+                print("uri_args::" .. inspect(uri_args))
+                print("request_body::" .. inspect(request_body))
+
+                local data = {}
+
+                if incoming_headers.service_host then
+
+                        data = {
+                            service_host = incoming_headers.service_host,
+                            route = incoming_headers.route,
+                            roundstarttime = incoming_headers.roundstarttime
+                        }
+                elseif uri_args.service_host then
+                       data = {
+                           service_host = uri_args.service_host,
+                           route = uri_args.route,
+                           roundstarttime = uri_args.roundstarttime
+                       }
+               elseif request_body.service_host then
+                      data = {
+                          service_host = request_body.service_host,
+                          route = request_body.route,
+                          roundstarttime = request_body.roundstarttime
+                      }
+                end
+                return mu.send_default_json_response({data = data})
+            }
+        }
+
+        location /main-route {
+            access_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.filter_access_by_method("GET")
+            }
+            content_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.send_default_json_response()
+            }
+        }
+        location /service-one-route {
+            access_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.filter_access_by_method("GET")
+            }
+            content_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.send_default_json_response()
+            }
+        }
+        location /service-two-route {
+            access_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.filter_access_by_method("GET")
+            }
+            content_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.send_default_json_response()
+            }
+        }
+        location /service-default-route {
+            access_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.filter_access_by_method("GET")
+            }
+            content_by_lua_block {
+                local mu = require "spec.fixtures.mock_upstream"
+                return mu.send_default_json_response()
             }
         }
 
