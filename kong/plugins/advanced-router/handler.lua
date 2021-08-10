@@ -23,7 +23,9 @@ function get_timestamp_utc(date_string)
 end
 
 function extract_from_io_response(key)
-    return extract(key, kong.ctx.plugin.io_data)
+    local value = extract(key, kong.ctx.plugin.io_data)
+    print("Returning::"..inspect(value))
+    return value
 end
 
 function generate_boolean_function(proposition)
@@ -60,7 +62,7 @@ end
 
 function set_upstream(upstream_url)
     local parsed_url = url.parse(upstream_url)
-    local scheme = parsed_url['port'] or 'http'
+    local scheme = parsed_url['scheme'] or 'http'
     local host = parsed_url['host']
     local path = parsed_url['path']
     local port = tonumber(parsed_url['port']) or 80
