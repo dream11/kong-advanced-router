@@ -60,7 +60,7 @@ end
 
 function set_upstream(upstream_url)
     local parsed_url = url.parse(upstream_url)
-    local scheme = parsed_url['port'] or 'http'
+    local scheme = parsed_url['scheme'] or 'http'
     local host = parsed_url['host']
     local path = parsed_url['path']
     local port = tonumber(parsed_url['port']) or 80

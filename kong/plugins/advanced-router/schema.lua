@@ -24,13 +24,13 @@ local function validate_propositions_json(config_string)
     for _, v in ipairs(propositions_json) do
         local upstream_url = v['upstream_url']
         local parsed_url = url.parse(upstream_url)
-        local scheme = parsed_url['port'] or 'http'
+        local scheme = parsed_url['scheme'] or 'http'
         if not belongs(scheme, valid_schemes) then
-            return nil, "Invalid protocol: " .. scheme " for url: " .. upstream_url
+            return nil, "Invalid protocol: " .. scheme .. " for url: " .. upstream_url
         end
 
         if parsed_url['port'] and not tonumber(parsed_url['port']) then
-            return nil, "Invalid port: " .. parsed_url['port'] " for url: " .. upstream_url
+            return nil, "Invalid port: " .. parsed_url['port'] .. " for url: " .. upstream_url
         end
     end
     return true
