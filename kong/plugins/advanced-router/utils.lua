@@ -27,8 +27,6 @@ function _M.replaceStringEnvVariables(s, data)
 end
 
 function _M.extract(key, data)
-    kong.log.debug("key::"..inspect(key))
-    kong.log.debug("data::"..inspect(data))
     if type(data) ~= 'table' then
         return
     end

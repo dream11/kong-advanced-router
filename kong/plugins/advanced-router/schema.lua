@@ -25,7 +25,6 @@ local function validate_propositions_json(config_string)
         local upstream_url = v['upstream_url']
         local parsed_url = url.parse(upstream_url)
         local scheme = parsed_url['scheme'] or 'http'
-        kong.log.debug(require "inspect"(parsed_url))
         if not belongs(scheme, valid_schemes) then
             return nil, "Invalid protocol: " .. scheme .. " for url: " .. upstream_url
         end
@@ -39,7 +38,6 @@ end
 
 local function schema_validator(conf)
     return validate_propositions_json(conf.propositions_json) and json_validator(conf.io_request_template)
-    --return json_validator(conf.io_request_template)
 end
 
 return {

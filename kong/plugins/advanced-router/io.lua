@@ -20,7 +20,6 @@ local function get_http_client(conf)
 end
 
 function extract_from_request(object, key)
-
     local value
     if object == 'headers' then
         value = extract(string.lower(key), kong.request.get_headers())
@@ -41,7 +40,7 @@ function extract_io_data_from_request(conf)
     }
     local req_parts = { "headers", "query", "body" }
 
-    -- This loop parses the io_request_template and populates each field one by one
+    -- This loop parses the io_request_template and populates each field from request data
     for _, part in ipairs(req_parts) do
         if io_request_template[part] then
             for key, value in pairs(io_request_template[part]) do
@@ -94,7 +93,6 @@ function get_io_data_from_remote(request_data, conf)
     end
     kong.log.debug("Data from I/O::" .. inspect(bodyJson))
     local cacheTTL
-    -- TODO: check what happens if header nil
     if conf.cache_io_response then
         cacheTTL = res.headers[conf.cache_ttl_header] or conf["default_edge_ttl_sec"]
     else
@@ -107,9 +105,9 @@ end
 function get_io_data(request_data, conf)
     local cache_key = get_cache_key(request_data)
     kong.log.debug("cache_key::" .. cache_key)
-    -- TODO: ttl values are overridden if callback returns ttl as third return value
+    -- TODO: Check all options parameters
+    -- ttl values are overridden if callback returns ttl as third return value
     local options = {
-        lru_size = 1000,
         ttl = 60,
         neg_ttl = 60
     }
