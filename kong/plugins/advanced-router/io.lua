@@ -6,6 +6,7 @@ local generate_signature_hash = require("kong.plugins.advanced-router.utils").ge
 local extract = require "kong.plugins.advanced-router.utils".extract
 local belongs = require "kong.plugins.advanced-router.utils".belongs
 local replaceStringEnvVariables = require "kong.plugins.advanced-router.utils".replaceStringEnvVariables
+local build_url = require("kong.plugins.advanced-router.utils").build_url
 
 local _M = {}
 
@@ -122,7 +123,7 @@ end
 function create_io_request(conf)
     local io_request = extract_io_data_from_request(conf)
     kong.log.debug("conf" .. inspect(conf))
-    io_request["io_url"] = replaceStringEnvVariables(conf.io_url)
+    io_request["io_url"] = build_url(replaceStringEnvVariables(conf.io_url), conf.kong_proxy_port)
     io_request["io_http_method"] = conf.io_http_method
     return io_request
 end
