@@ -2,6 +2,7 @@ local pl_utils = require "pl.utils"
 local sha256 = require "resty.sha256"
 local encode_base64 = ngx.encode_base64
 local inspect = require "inspect"
+local url = require "socket.url"
 
 local _M = {}
 
@@ -53,6 +54,15 @@ function _M.belongs(val, tbl)
         end
     end
     return false
+end
+
+function _M.build_url(upstream_url, kong_proxy_port)
+    local parsed_url = url.parse(upstream_url);
+    if not parsed_url["host"] then
+        parsed_url["host"] = "localhost"
+        parsed_url["port"] = kong_proxy_port
+    end
+    return url.build(parsed_url)
 end
 
 return _M
