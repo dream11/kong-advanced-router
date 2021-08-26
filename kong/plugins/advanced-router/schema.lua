@@ -1,8 +1,9 @@
 local typedefs = require "kong.db.schema.typedefs"
 local json_safe = require "cjson.safe"
 local url = require "socket.url"
-
-local belongs = require "kong.plugins.advanced-router.utils".belongs
+local pl_utils = require "pl.utils"
+local pl_tablex = require "pl.tablex"
+local inspect = require "inspect"
 
 local function json_validator(config_string)
     local decoded, err = json_safe.decode(config_string)
@@ -18,6 +19,7 @@ local function validate_propositions_json(config_string)
     -- This functions validates the port and protocols of the upstream urls in the propositions_json
     local result, err, propositions_json = json_validator(config_string)
     if not result then
+        kong.log.err(kong.log.err("Invalid JSON in propositions_json" .. inspect(err)))
         return nil, err
     end
     local valid_schemes = { 'http', 'https' }
@@ -25,19 +27,38 @@ local function validate_propositions_json(config_string)
         local upstream_url = v['upstream_url']
         local parsed_url = url.parse(upstream_url)
         local scheme = parsed_url['scheme'] or 'http'
-        if not belongs(scheme, valid_schemes) then
-            return nil, "Invalid protocol: " .. scheme .. " for url: " .. upstream_url
+        if not pl_tablex.find(valid_schemes, scheme) then
+            kong.log.err(kong.log.err("Invalid protocol: " .. scheme .. " for url: " .. upstream_url))
+            return nil, kong.log.err("Invalid protocol: " .. scheme .. " for url: " .. upstream_url)
         end
 
         if parsed_url['port'] and not tonumber(parsed_url['port']) then
+            kong.log.err("Invalid port: " .. parsed_url['port'] .. " for url: " .. upstream_url)
             return nil, "Invalid port: " .. parsed_url['port'] .. " for url: " .. upstream_url
         end
     end
     return true
 end
 
+function validate_cache_identifier(cache_identifier)
+    local req_part, key = pl_utils.splitv(cache_identifier, "%.")
+    local common_err_msg = "Cache identifier should consist of two non empty strings joined by . (dot)"
+    if not pl_tablex.find({ "headers", "query" }, req_part) then
+        local err = "Invalid first string in cache identifier: " .. cache_identifier .. ". " .. common_err_msg .. " and first string should pe either headers or query"
+        kong.log.err(err)
+        return nil, err
+    end
+
+    if not key then
+        local err = "Invalid second string in cache identifier: " .. cache_identifier .. ". " .. common_err_msg .. " and first string should pe either headers or query"
+        kong.log.err(err)
+        return nil, err
+    end
+    return true
+end
+
 local function schema_validator(conf)
-    return validate_propositions_json(conf.propositions_json) and json_validator(conf.io_request_template)
+    return validate_propositions_json(conf.propositions_json) and json_validator(conf.io_request_template) and validate_cache_identifier(conf.cache_identifier)
 end
 
 return {
@@ -74,6 +95,12 @@ return {
                         }
                     },
                     {
+                        cache_identifier = {
+                            type = "string",
+                            required = true
+                        }
+                    },
+                    {
                         io_http_method = {
                             type = "string",
                             default = "GET",
@@ -91,7 +118,7 @@ return {
                             type = "number",
                             required = true
                         }
-                    }
+                    },
                 },
                 custom_validator = schema_validator
             }
