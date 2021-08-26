@@ -98,17 +98,17 @@ return {
                     {
                         http_connect_timeout = {
                             type = "number",
-                            required = true
+                            default = 5000
                         }
                     },{
                         http_send_timeout = {
                             type = "number",
-                            required = true
+                            default = 5000
                         }
                     },{
-                        http_read_timeout = {
+                        http_send_timeout = {
                             type = "number",
-                            required = true
+                            default = 5000
                         }
                     },
                     {
