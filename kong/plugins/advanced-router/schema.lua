@@ -83,9 +83,32 @@ return {
                         }
                     },
                     {
+                        io_http_method = {
+                            type = "string",
+                            default = "GET",
+                            one_of = { "GET", "POST" }
+                        }
+                    },
+                    {
                         io_request_template = {
                             type = "string",
                             default = "{\n  \"headers\": {\n    \"a\":\"headers.x\"\n  },\n  \"query\": {\n    \"b\": \"query.y\"\n  },\n  \"body\": {\n    \"c\": \"query.z\",\n    \"d\": \"hardcoded\"\n  }\n}"
+                        }
+                    },
+                    {
+                        http_connect_timeout = {
+                            type = "number",
+                            required = true
+                        }
+                    },{
+                        http_send_timeout = {
+                            type = "number",
+                            required = true
+                        }
+                    },{
+                        http_read_timeout = {
+                            type = "number",
+                            required = true
                         }
                     },
                     {
@@ -101,20 +124,13 @@ return {
                         }
                     },
                     {
-                        io_http_method = {
-                            type = "string",
-                            default = "GET",
-                            one_of = { "GET", "POST" }
-                        }
-                    },
-                    {
                         cache_ttl_header = {
                             type = "string",
                             required = true
                         }
                     },
                     {
-                        default_edge_ttl_sec = {
+                        default_cache_ttl_sec = {
                             type = "number",
                             required = true
                         }

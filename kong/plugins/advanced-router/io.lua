@@ -85,7 +85,7 @@ function get_io_data_from_remote(request_data, conf)
     end
     local cacheTTL
     if conf.cache_io_response then
-        cacheTTL = res.headers[conf.cache_ttl_header] or conf["default_edge_ttl_sec"]
+        cacheTTL = res.headers[conf.cache_ttl_header] or conf["default_cache_ttl_sec"]
     else
         cacheTTL = -1
     end
