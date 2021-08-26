@@ -34,7 +34,6 @@ function get_io_request_template(conf)
 end
 
 function extract_io_data_from_request(conf)
-    -- TODO - Done: cache this for each route
     local cache_key = 'io_request_template:' .. conf.route_id
     local io_request_template = kong.cache:get(cache_key, {}, get_io_request_template, conf)
 
@@ -109,7 +108,6 @@ end
 
 function create_io_request(conf)
     local io_request = extract_io_data_from_request(conf)
-    -- TODO - Done - cached inside function: not p0 cache this and check perfa
     local req_part, key = pl_utils.splitv(conf.cache_identifier, "%.")
 
     local cache_identifier = extract_from_request(req_part, key)

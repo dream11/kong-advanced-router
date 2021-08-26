@@ -36,7 +36,6 @@ function generate_boolean_function(proposition)
 end
 
 function get_upstream_url(conf)
-    -- TODO - Done - added log: check if this is happening for all req in load
     if boolean_functions[conf.route_id] == nil then
         boolean_functions[conf.route_id] = {}
         local propositions_json, err1 = cjson_safe.decode(conf.propositions_json)

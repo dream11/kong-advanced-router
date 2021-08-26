@@ -16,7 +16,6 @@ function interpolate_string_env_cb(s)
 end
 
 
--- TODO - Done: remove interpolate from io_data and cache the result
 function _M.interpolate_string_env(s)
     local result, err = kong.cache:get('interpolate:' .. s, {}, interpolate_string_env_cb, s)
     if err then
