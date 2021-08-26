@@ -6,12 +6,12 @@ local _M = {}
 function interpolate_string_env_cb(s)
     local ttl = 300
     return string.gsub(
-            s,
-            "%%[A-Za-z_%.]+%%",
-            function(str)
-                local variable = string.sub(str, 2, string.len(str) - 1)
-                return os.getenv(variable)
-            end
+        s,
+        "%%[A-Za-z_%.]+%%",
+        function(str)
+            local variable = string.sub(str, 2, string.len(str) - 1)
+            return os.getenv(variable)
+        end
     ), nil, ttl
 end
 

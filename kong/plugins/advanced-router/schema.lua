@@ -100,12 +100,12 @@ return {
                             type = "number",
                             default = 5000
                         }
-                    },{
+                    }, {
                         http_send_timeout = {
                             type = "number",
                             default = 5000
                         }
-                    },{
+                    }, {
                         http_send_timeout = {
                             type = "number",
                             default = 5000
