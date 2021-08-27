@@ -68,7 +68,7 @@ function get_io_data_from_remote(request_data, conf)
         request_data.io_url,
         {
             method = request_data.io_http_method,
-            headers = pl_tablex.merge(request_data.headers, { ['Content-Type'] = 'application/json' }),
+            headers = pl_tablex.merge(request_data.headers, { ['Content-Type'] = 'application/json' }, true),
             body = cjson_safe.encode(request_data.body),
             query = request_data.query
         }

@@ -4,7 +4,7 @@ local inspect = require "inspect"
 
 for _, strategy in helpers.each_strategy() do
 
-    describe("advanced router plugin I/O data from headers [#" .. strategy .. "]", function()
+    describe("advanced router plugin [#" .. strategy .. "]", function()
         local KONG_IO_CALL_HOST_ENV = "-io-call"
         local KONG_SERVICE_ONE_HOST_ENV = "-one"
 
@@ -52,7 +52,7 @@ for _, strategy in helpers.each_strategy() do
             port = 15555
         }
 
-        function setup_db(propositions_json, io_request_template, service_io_call_host)
+        function setup_db(propositions_json, io_request_template, service_io_call_host, variables, cache_identifier)
             local test_service = assert(bp.services:insert(
                 {
                     protocol = "http",
@@ -80,7 +80,13 @@ for _, strategy in helpers.each_strategy() do
                     cache_io_response = true,
                     io_http_method = "GET",
                     cache_ttl_header = "edge_ttl",
-                    default_edge_ttl_sec = 10
+                    variables = variables,
+                    http_connect_timeout = 2000,
+                    http_send_timeout = 2000,
+                    http_read_timeout = 2000,
+                    cache_identifier = cache_identifier,
+                    default_cache_ttl_sec = 10
+
                 },
                 route = main_route
             })
@@ -141,7 +147,7 @@ for _, strategy in helpers.each_strategy() do
                         ['route'] = "query.route1"
                     }
                 }
-                setup_db(propositions_json, io_request_template, service_io_call_host)
+                setup_db(propositions_json, io_request_template, service_io_call_host, { "data.service_host", "data.route" }, "headers.route")
             end)
 
             teardown(function()
@@ -156,13 +162,13 @@ for _, strategy in helpers.each_strategy() do
             end)
 
             it("Should send data in query parameters correctly  #template_query", function()
-                local req_data = { query = { service_host = '-one', route = '/one' } }
+                local req_data = { query = { service_host = '-one', route = '/one' }, headers = { route = '/one' } }
                 local expected_resp = { host = service_one_host, uri = service_one_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
 
             it("Should send data in body correctly  #template_body", function()
-                local req_data = { query = { service_host1 = '-one', route1 = '/one', method = 'POST' } }
+                local req_data = { query = { service_host1 = '-one', route1 = '/one', method = 'POST' }, headers = { route = '/one' } }
                 local expected_resp = { host = service_one_host, uri = service_one_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
@@ -184,7 +190,7 @@ for _, strategy in helpers.each_strategy() do
                         ['roundstarttime'] = "headers.roundstarttime"
                     }
                 }
-                setup_db(propositions_json, io_request_template, service_io_call_host)
+                setup_db(propositions_json, io_request_template, service_io_call_host, { "data.service_host", "data.route" }, "headers.route")
             end)
 
             teardown(function()
@@ -227,7 +233,7 @@ for _, strategy in helpers.each_strategy() do
                         ['roundstarttime'] = "headers.roundstarttime"
                     }
                 }
-                setup_db(propositions_json, io_request_template, service_io_call_host)
+                setup_db(propositions_json, io_request_template, service_io_call_host, { "data.service_host", "data.route", "data.roundstarttime" }, "headers.roundstarttime")
             end)
 
             teardown(function()
@@ -235,20 +241,20 @@ for _, strategy in helpers.each_strategy() do
                 db:truncate()
             end)
 
-            it("Should match first condition  #service_one1", function()
+            it("Should match first condition  #time_service_one", function()
                 local req_data = { headers = { service_host = '-one', route = '/one', roundstarttime = "2925-10-17T11:15:14.000Z" } }
                 local expected_resp = { host = service_one_host, uri = service_one_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
 
-            it("Should match second condition #service_two2", function()
+            it("Should match second condition #time_service_two", function()
                 local req_data = { headers = { service_host = '-two', route = '/two', roundstarttime = "1925-10-17T11:15:14.000Z" } }
                 local expected_resp = { host = service_two_host, uri = service_two_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
 
-            it("Should match default condition #service_default1", function()
-                local req_data = { headers = { service_host = '-two', route = '/one', roundstarttime = "1925-10-17T11:15:14.000Z" } }
+            it("Should match default condition #time_service_default", function()
+                local req_data = { headers = { service_host = '-two', route = '/one', roundstarttime = "1925-10-16T11:15:14.000Z" } }
                 local expected_resp = { host = service_default_host, uri = service_default_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
@@ -270,7 +276,7 @@ for _, strategy in helpers.each_strategy() do
                         ['roundstarttime'] = "headers.roundstarttime"
                     }
                 }
-                setup_db(propositions_json, io_request_template, service_io_call_host_variable)
+                setup_db(propositions_json, io_request_template, service_io_call_host_variable, { "data.service_host", "data.route" }, "headers.route")
             end)
 
             teardown(function()
@@ -290,14 +296,51 @@ for _, strategy in helpers.each_strategy() do
                 get_and_assert_upstream(req_data, expected_resp)
             end)
 
-            it("Should interpolate upstream_url of second condition from I/O data #UpIO", function()
+        end)
+
+        describe("Should cache io_data using cache identifier correctly #cache_identifier", function()
+
+            lazy_setup(function()
+                local propositions_json = {
+                    { condition = "extract_from_io_response('data.service_host') == '-one' and extract_from_io_response('data.route') == '/one'", upstream_url = "http://" .. service_one_host .. service_one_route },
+                    { condition = "extract_from_io_response('data.service_host') == '-two' and extract_from_io_response('data.route') == '/two'", upstream_url = "http://" .. service_two_host .. service_two_route },
+                    { condition = "default", upstream_url = "http://" .. service_default_host .. service_default_route },
+                }
+
+                local io_request_template = {
+                    headers = {
+                        ['service_host'] = "headers.service_host",
+                        ['route'] = "headers.route",
+                        ['roundstarttime'] = "headers.roundstarttime"
+                    }
+                }
+                setup_db(propositions_json, io_request_template, service_io_call_host, { "data.service_host", "data.route" }, "headers.route")
+            end)
+
+            teardown(function()
+                helpers.stop_kong()
+                db:truncate()
+            end)
+
+            it("Should call remote on first call  #cache_identifier_one", function()
+                local req_data = { headers = { service_host = '-one', route = '/one' } }
+                local expected_resp = { host = service_one_host, uri = service_one_route, scheme = 'http' }
+                get_and_assert_upstream(req_data, expected_resp)
+            end)
+
+            it("Should use cached data on second call #cache_identifier_two", function()
+                local req_data = { headers = { service_host = '-two', route = '/one' } }
+                local expected_resp = { host = service_one_host, uri = service_one_route, scheme = 'http' }
+                get_and_assert_upstream(req_data, expected_resp)
+            end)
+
+            it("Should call remote when different cache_identifier value is sent in request #cache_identifier_three", function()
                 local req_data = { headers = { service_host = '-two', route = '/two' } }
                 local expected_resp = { host = service_two_host, uri = service_two_route, scheme = 'http' }
                 get_and_assert_upstream(req_data, expected_resp)
             end)
 
         end)
-
     end)
     break
 end
