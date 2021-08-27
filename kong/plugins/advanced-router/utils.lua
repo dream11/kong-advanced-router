@@ -4,7 +4,7 @@ local inspect = require "inspect"
 local _M = {}
 
 function interpolate_string_env_cb(s)
-    local ttl = 300
+    local ttl = 36000
     return string.gsub(
         s,
         "%%[A-Za-z_%.]+%%",

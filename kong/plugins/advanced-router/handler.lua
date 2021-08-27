@@ -1,8 +1,10 @@
-local inspect = require("inspect")
+local inspect = require "inspect"
 local cjson_safe = require "cjson.safe"
 local url = require "socket.url"
 local date = require "date"
 local pl_utils = require "pl.utils"
+
+local kong = kong
 
 local get_io_data = require("kong.plugins.advanced-router.io").get_io_data
 local extract = require("kong.plugins.advanced-router.utils").extract
@@ -23,7 +25,7 @@ function get_timestamp_utc(date_string)
 end
 
 function extract_from_io_response(key)
-    return extract(key, kong.ctx.plugin.io_data)
+    return kong.ctx.plugin.io_data[key]
 end
 
 function generate_boolean_function(proposition)
@@ -86,26 +88,26 @@ end
 
 function AdvancedRouterHandler:init_worker()
     kong.worker_events.register(
-        function(data)
-            if type(data) ~= "string" then
-                return
-            end
+            function(data)
+                if type(data) ~= "string" then
+                    return
+                end
 
-            local key_parts = pl_utils.split(data, ":")
-            if key_parts[1] ~= "plugins" or key_parts[2] ~= "advanced-router" then
-                return
-            end
-            local route_id = key_parts[3]
-            kong.log.info("Invalidating boolean functions of route :: " .. route_id)
-            if boolean_functions[route_id] ~= nil then
-                boolean_functions[route_id] = nil
-            end
-            kong.log.info("Invalidating io_request_template of route :: " .. route_id)
-            kong.cache:invalidate('io_request_template' .. route_id, false)
+                local key_parts = pl_utils.split(data, ":")
+                if key_parts[1] ~= "plugins" or key_parts[2] ~= "advanced-router" then
+                    return
+                end
+                local route_id = key_parts[3]
+                kong.log.info("Invalidating boolean functions of route :: " .. route_id)
+                if boolean_functions[route_id] ~= nil then
+                    boolean_functions[route_id] = nil
+                end
+                kong.log.info("Invalidating io_request_template of route :: " .. route_id)
+                kong.cache:invalidate('io_request_template' .. route_id, false)
 
-        end,
-        "mlcache",
-        "mlcache:invalidations:kong_core_db_cache"
+            end,
+            "mlcache",
+            "mlcache:invalidations:kong_core_db_cache"
     )
 end
 

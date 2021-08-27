@@ -1,20 +1,21 @@
 local http = require "resty.http"
 local cjson_safe = require "cjson.safe"
-local inspect = require "inspect"
 local pl_utils = require "pl.utils"
 local pl_tablex = require "pl.tablex"
 
-local extract = require "kong.plugins.advanced-router.utils".extract
+local kong = kong
+
 local interpolate_string_env = require "kong.plugins.advanced-router.utils".interpolate_string_env
+local extract = require "kong.plugins.advanced-router.utils".extract
 
 local _M = {}
 
 local function get_http_client(conf)
     local client = http.new()
     client:set_timeouts(
-        conf["http_connect_timeout"],
-        conf["http_read_timeout"],
-        conf["http_send_timeout"]
+            conf["http_connect_timeout"],
+            conf["http_read_timeout"],
+            conf["http_send_timeout"]
     )
     return client
 end
@@ -22,15 +23,15 @@ end
 function extract_from_request(object, key)
     local value
     if object == 'headers' then
-        value = extract(string.lower(key), kong.request.get_headers())
+        value = kong.request.get_header(string.lower(key))
     else
-        value = extract(key, kong.request.get_query())
+        value = kong.request.get_query_arg(key)
     end
     return value
 end
 
 function get_io_request_template(conf)
-    return cjson_safe.decode(conf.io_request_template), nil, 120
+    return cjson_safe.decode(conf.io_request_template), nil, 3600
 end
 
 function extract_io_data_from_request(conf)
@@ -64,13 +65,13 @@ end
 function get_io_data_from_remote(request_data, conf)
     local client = get_http_client(conf)
     local res, err1 = client:request_uri(
-        request_data.io_url,
-        {
-            method = request_data.io_http_method,
-            headers = pl_tablex.merge(request_data.headers, { ['Content-Type'] = 'application/json' }),
-            body = cjson_safe.encode(request_data.body),
-            query = request_data.query
-        }
+            request_data.io_url,
+            {
+                method = request_data.io_http_method,
+                headers = pl_tablex.merge(request_data.headers, { ['Content-Type'] = 'application/json' }),
+                body = cjson_safe.encode(request_data.body),
+                query = request_data.query
+            }
     )
     if not res or err1 then
         return nil, err1
@@ -88,7 +89,12 @@ function get_io_data_from_remote(request_data, conf)
     else
         cacheTTL = -1
     end
-    return bodyJson, nil, tonumber(cacheTTL)
+
+    local result = {}
+    for _, v in ipairs(conf.variables) do
+        result[v] = extract(v, bodyJson)
+    end
+    return result, nil, tonumber(cacheTTL)
 end
 
 function get_io_data(request_data, conf)
@@ -115,7 +121,7 @@ function create_io_request(conf)
         return kong.response.exit(400, { error = "Cache identifier not found in request:: " .. conf.cache_identifier })
     end
 
-    io_request["cache_key"] = conf.io_http_method .. ':' .. conf.io_url .. ':' .. extract_from_request(req_part, key)
+    io_request["cache_key"] = conf.io_http_method .. ':' .. conf.io_url .. ':' .. cache_identifier
     io_request["io_url"] = interpolate_string_env(conf.io_url)
     io_request["io_http_method"] = conf.io_http_method
 

@@ -77,6 +77,13 @@ return {
                         }
                     },
                     {
+                        variables = {
+                            type = "array",
+                            elements = { type = "string" },
+                            required = true
+                        }
+                    },
+                    {
                         io_url = {
                             type = "string",
                             default = "http://io-call%placeholder%/round"
