@@ -13,9 +13,9 @@ local _M = {}
 local function get_http_client(conf)
     local client = http.new()
     client:set_timeouts(
-            conf["http_connect_timeout"],
-            conf["http_read_timeout"],
-            conf["http_send_timeout"]
+        conf["http_connect_timeout"],
+        conf["http_read_timeout"],
+        conf["http_send_timeout"]
     )
     return client
 end
@@ -65,13 +65,13 @@ end
 function get_io_data_from_remote(request_data, conf)
     local client = get_http_client(conf)
     local res, err1 = client:request_uri(
-            request_data.io_url,
-            {
-                method = request_data.io_http_method,
-                headers = pl_tablex.merge(request_data.headers, { ['Content-Type'] = 'application/json' }),
-                body = cjson_safe.encode(request_data.body),
-                query = request_data.query
-            }
+        request_data.io_url,
+        {
+            method = request_data.io_http_method,
+            headers = pl_tablex.merge(request_data.headers, { ['Content-Type'] = 'application/json' }),
+            body = cjson_safe.encode(request_data.body),
+            query = request_data.query
+        }
     )
     if not res or err1 then
         return nil, err1

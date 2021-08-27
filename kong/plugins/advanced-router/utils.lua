@@ -15,7 +15,6 @@ function interpolate_string_env_cb(s)
     ), nil, ttl
 end
 
-
 function _M.interpolate_string_env(s)
     local result, err = kong.cache:get('interpolate:' .. s, {}, interpolate_string_env_cb, s)
     if err then

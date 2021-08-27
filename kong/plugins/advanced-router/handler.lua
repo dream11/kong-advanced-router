@@ -88,26 +88,26 @@ end
 
 function AdvancedRouterHandler:init_worker()
     kong.worker_events.register(
-            function(data)
-                if type(data) ~= "string" then
-                    return
-                end
+        function(data)
+            if type(data) ~= "string" then
+                return
+            end
 
-                local key_parts = pl_utils.split(data, ":")
-                if key_parts[1] ~= "plugins" or key_parts[2] ~= "advanced-router" then
-                    return
-                end
-                local route_id = key_parts[3]
-                kong.log.info("Invalidating boolean functions of route :: " .. route_id)
-                if boolean_functions[route_id] ~= nil then
-                    boolean_functions[route_id] = nil
-                end
-                kong.log.info("Invalidating io_request_template of route :: " .. route_id)
-                kong.cache:invalidate('io_request_template' .. route_id, false)
+            local key_parts = pl_utils.split(data, ":")
+            if key_parts[1] ~= "plugins" or key_parts[2] ~= "advanced-router" then
+                return
+            end
+            local route_id = key_parts[3]
+            kong.log.info("Invalidating boolean functions of route :: " .. route_id)
+            if boolean_functions[route_id] ~= nil then
+                boolean_functions[route_id] = nil
+            end
+            kong.log.info("Invalidating io_request_template of route :: " .. route_id)
+            kong.cache:invalidate('io_request_template' .. route_id, false)
 
-            end,
-            "mlcache",
-            "mlcache:invalidations:kong_core_db_cache"
+        end,
+        "mlcache",
+        "mlcache:invalidations:kong_core_db_cache"
     )
 end
 
