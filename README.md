@@ -1,50 +1,98 @@
 # Kong-advanced-router
 
-## Description
+## Overview
 
-Routing a request to a particular service based on the response of an I/O call
+`kong-advanced-router` is a kong plugin that provides functionality to route a request to a particular upstream from a set of predefined upstreams based on the response of an I/O call.
 
-Ex: Routing `/myteam` request to Team service before round lock and to PC service after roundlock by fetching round data using `/round` api of tour service before sending the request to upstream.
+## Usecase
 
-A set of propositions can be defined based on the I/O call response data which are evaluated for each request and routed accordingly.
+Suppose we want to proxy a request to fetch the orders of a user. We want to proxy the request to order service A if the user's status is 1, proxy to order service B if the status is 2 and to order service C otherwise. This plugin can be used to fetch the user details before proxying the request. The upstream service will be set as order service A, B, or C based on the response of this call.
 
-For making the I/O call, all parameters of the call like URL, Method, body etc. can be defined in the config and can ge generated dynamically for each request. Results of the I/O calls are cached preventing round trips for same request.
+## How it works
 
-I/O URL can be interpolated using env variables and upstream URLS can also be interpolated using I/O data.
+1. The plugin uses the `io_url`, `io_http_method`, `io_request_template` parameters from the config to make an I/O call
+2. It caches the response based on the `cache_ttl_header` header from the I/O response if `cache_io_response` is set to true in the config.
+3. It evaluates the response against a list of conditions provided in `propositions_json`.
+4. It then sets the upstream target and path using the `upstream_url` of the condition that evaluates to true or to the default values if all conditions evaluate to false.
+5. The plugin interpolates the `upstream_url` and the `io_url` with environment variables before using them.
 
-## Implementation
+## Example
 
-
-
-
-Propositions Json
-
-```json
-[
-    {
-        "condition": "get_timestamp_utc(extract_from_io_response('round.RoundStartTime')) > get_current_timestamp_utc()",
-        "upstream_url": "http://pc%TEAM_SUFFIX%.dream11%VPC_SUFFIX%.local:5000/myteam"
-    },
-    {
-        "condition": "default",
-        "upstream_url": "http://team%TEAM_SUFFIX%.dream11%VPC_SUFFIX%.local:5000/myteam"
-    }
-]
-```
-
-I/O request Template
-
-```json
-{
-    "body": {
-        "roundId": "headers.roundId"
-    }
+```lua
+ config = {
+    io_url = "http://user_service/user" ,
+    io_http_method = "GET",
+    io_request_template = "{\"body\":{\"id\":\"headers.user_id\"}}",
+    http_connect_timeout = 2000,
+    http_send_timeout = 2000,
+    http_read_timeout = 2000,
+    cache_io_response = true,
+    cache_ttl_header = "edge_ttl",
+    cache_identifier = "headers.user_id",
+    default_cache_ttl_sec = 10,
+    propositions_json = "[
+      {
+        \"condition\": \"extract_from_io_response('data.status') == 1\",
+        \"upstream_url\": \"http://order_service_a/orders\"
+      },
+      {
+        \"condition\": \"extract_from_io_response('data.status') == 2\",
+        \"upstream_url\": \"http://order_service_b/orders\"
+      },
+      {
+        \"condition\": \"default\",
+        \"upstream_url\": \"http://order_service_c/orders\"
+      }
+    ]",
+    variables = {"data.status"},
 }
 ```
 
-I/O Url
-```json
-http://tour%TEAM_SUFFIX%.dream11%VPC_SUFFIX%.local/round
+For the above config applied on route `/orders`. Suppose we make the below request
+
+```shell
+curl --location --request GET 'localhost:8000/orders' \
+--header 'user_id: 1'
 ```
-Cache ttl header: `d11-edge-ttl`
+
+The plugin first makes the below I/O call.
+```shell
+curl --location --request GET 'http://user_service/user' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "id" : 1
+}'
+```
+Suppose the response received is
+
+```json
+{
+  "data": {
+    "status": 2,
+    "name": "foo",
+    "city": "bar"
+  }
+}
+```
+
+The plugin caches only the keys from the response which are defined in  `variables` in the config.
+
+So the data cached is
+
+```json
+{
+  "data.status": 2
+}
+```
+
+Now this data is used to evaluate the conditions given in `propositions_json`. `extract_from_io_response` is an abstraction that is used to extract values from the response. In this case, the second condition evaluates to true i.e.
+```lua
+extract_from_io_response('data.status') == 2
+```
+Hence, the upstream url is set as `http://order_service_b/orders`
+
+### Other abstractions that can be used in propositions_json
+
+The plugin converts the conditions in `propositions_json` into lua functions using the `loadstring` function and keeps them in a global table against the route_id. It uses these functions for subsequent requests.
+
 
