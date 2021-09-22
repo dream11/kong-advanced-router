@@ -1,30 +1,27 @@
 local pl_utils = require "pl.utils"
-local sha256 = require "resty.sha256"
-local encode_base64 = ngx.encode_base64
 local inspect = require "inspect"
-local url = require "socket.url"
 
 local _M = {}
 
-function _M.replaceStringEnvVariables(s, data)
-    return
-    string.gsub(
+function interpolate_string_env_cb(s)
+    local ttl = 36000
+    return string.gsub(
         s,
         "%%[A-Za-z_%.]+%%",
         function(str)
-
             local variable = string.sub(str, 2, string.len(str) - 1)
-            kong.log.debug("string=" .. variable)
-            if data then
-                local value_from_data = _M.extract(variable, data)
-                if value_from_data then
-                    return value_from_data
-                end
-            end
-            kong.log.debug("from env=" .. inspect(os.getenv(variable)))
             return os.getenv(variable)
         end
-    )
+    ), nil, ttl
+end
+
+function _M.interpolate_string_env(s)
+    local result, err = kong.cache:get('interpolate:' .. s, {}, interpolate_string_env_cb, s)
+    if err then
+        kong.log.err("Error in interpolating string::" .. inspect(s))
+        return kong.response.exit(500, { error = "Something went wrong" })
+    end
+    return result
 end
 
 function _M.extract(key, data)
@@ -38,31 +35,6 @@ function _M.extract(key, data)
     else
         return data[root_key]
     end
-end
-
-function _M.generate_signature_hash(s)
-    local digest = sha256:new()
-    digest:update(s)
-    local hash = encode_base64(digest:final())
-    return hash
-end
-
-function _M.belongs(val, tbl)
-    for _, v in pairs(tbl) do
-        if v == val then
-            return true
-        end
-    end
-    return false
-end
-
-function _M.build_url(upstream_url, kong_proxy_port)
-    local parsed_url = url.parse(upstream_url);
-    if not parsed_url["host"] then
-        parsed_url["host"] = "localhost"
-        parsed_url["port"] = kong_proxy_port
-    end
-    return url.build(parsed_url)
 end
 
 return _M
