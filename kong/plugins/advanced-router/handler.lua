@@ -64,11 +64,19 @@ end
 
 function set_upstream(upstream_url)
     local parsed_url = url.parse(upstream_url)
-    debug("Setting upstream URL::" .. upstream_url)
-    kong.service.request.set_scheme(parsed_url['scheme'] or 'http')
-    kong.service.set_target(parsed_url['host'], tonumber(parsed_url['port']) or 80)
+    local host = parsed_url['host']
+    local port = tonumber(parsed_url['port']) or 80
+    local scheme = parsed_url['scheme'] or 'http'
+    local path = parsed_url['path']
+    debug("Setting upstream values::")
+    debug("Host::" .. host)
+    debug("Port::" .. port)
+    debug("Path::" .. path)
+    debug("Protocol::" .. scheme)
+    kong.service.request.set_scheme(scheme)
+    kong.service.set_target(host, port)
     if parsed_url['path'] then
-        kong.service.request.set_path(parsed_url['path'])
+        kong.service.request.set_path(path)
     end
 end
 
