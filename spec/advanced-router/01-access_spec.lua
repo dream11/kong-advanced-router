@@ -341,6 +341,36 @@ for _, strategy in helpers.each_strategy() do
             end)
 
         end)
+
+        describe("Should work for conditions ending in integer literal #integer_literal", function()
+
+            lazy_setup(function()
+                local propositions_json = {
+                    { condition = "extract_from_io_response('data.service_host') == 1", upstream_url = "http://" .. service_one_host .. service_one_route },
+                    { condition = "default", upstream_url = "http://" .. service_default_host .. service_default_route },
+                }
+
+                local io_request_template = {
+                    headers = {
+                        ['service_host'] = "headers.service_host"
+                    }
+                }
+                setup_db(propositions_json, io_request_template, service_io_call_host, { "data.service_host" }, "headers.service_host")
+            end)
+
+            teardown(function()
+                helpers.stop_kong()
+                db:truncate()
+            end)
+
+            it("Should return 200 response", function()
+                local req_data = { headers = { service_host = 1} }
+                local expected_resp = { host = service_default_host, uri = service_default_route, scheme = 'http' }
+                get_and_assert_upstream(req_data, expected_resp)
+            end)
+
+        end)
+
     end)
     break
 end

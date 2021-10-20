@@ -5,9 +5,9 @@ local date = require "date"
 local pl_utils = require "pl.utils"
 
 local kong = kong
+local debug = kong.log.debug
 
 local get_io_data = require("kong.plugins.advanced-router.io").get_io_data
-local extract = require("kong.plugins.advanced-router.utils").extract
 local interpolate_string_env = require("kong.plugins.advanced-router.utils").interpolate_string_env
 
 local AdvancedRouterHandler = {}
@@ -34,7 +34,7 @@ function generate_boolean_function(proposition)
         return assert(loadstring("return " .. "\"" .. proposition["upstream_url"] .. "\""))
     end
     local upstream_url = proposition["upstream_url"]
-    return assert(loadstring("if " .. proposition["condition"] .. "then return " .. "\"" .. upstream_url .. "\"" .. " end"))
+    return assert(loadstring("if " .. proposition["condition"] .. " then return " .. "\"" .. upstream_url .. "\"" .. " end"))
 end
 
 function get_upstream_url(conf)
@@ -64,10 +64,19 @@ end
 
 function set_upstream(upstream_url)
     local parsed_url = url.parse(upstream_url)
-    kong.service.request.set_scheme(parsed_url['scheme'] or 'http')
-    kong.service.set_target(parsed_url['host'], tonumber(parsed_url['port']) or 80)
+    local host = parsed_url['host']
+    local port = tonumber(parsed_url['port']) or 80
+    local scheme = parsed_url['scheme'] or 'http'
+    local path = parsed_url['path']
+    debug("Setting below upstream values")
+    debug("Host::" .. host)
+    debug("Port::" .. port)
+    debug("Path::" .. path)
+    debug("Protocol::" .. scheme)
+    kong.service.request.set_scheme(scheme)
+    kong.service.set_target(host, port)
     if parsed_url['path'] then
-        kong.service.request.set_path(parsed_url['path'])
+        kong.service.request.set_path(path)
     end
 end
 
