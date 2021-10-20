@@ -68,7 +68,7 @@ function set_upstream(upstream_url)
     local port = tonumber(parsed_url['port']) or 80
     local scheme = parsed_url['scheme'] or 'http'
     local path = parsed_url['path']
-    debug("Setting upstream values::")
+    debug("Setting below upstream values")
     debug("Host::" .. host)
     debug("Port::" .. port)
     debug("Path::" .. path)
