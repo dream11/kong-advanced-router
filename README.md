@@ -13,20 +13,27 @@ Suppose we want to proxy a request to fetch the orders of a user. We want to pro
 
 ### Parameters
 
+## The following config parameters are used to configure the intermediate HTTP call
+
 | Key | Default  | Type  | Required | Description |
 | --- | --- | --- | --- | --- |
-| io_url |  | string | true | URL of the I/O call |
-| io_http_method | GET | string | false | Http Method (GET, POST) of the I/O call |
+| io_url |  | string | true | URL |
+| io_http_method | GET | string | false | Http Method (GET, POST)|
 | io_request_template |   | string | true | Template of the I/O call in JSON. Must be a valid json string |
-| http_connect_timeout | 5000 | number | false | Connect timeout (ms) of the I/O call |
-| http_send_timeout | 5000 | number | false | Send timeout (ms) of the I/O call |
-| http_read_timeout | 5000 | number | false | Read timeout (ms) of the I/O call |
-| cache_io_response | true | boolean | false | Should the I/O response be cached |
-| cache_ttl_header |  | string | true | Header from the I/O response that will be used to set the ttl of the cached response |
-| cache_identifier |  | string | true | Key from the request which uniquely identifies the request. This is used to create the key against which the response is cached |
-| default_cache_ttl_sec |  | number | true | This ttl is used if `cache_ttl_header` in the I/O response is null |
-| propositions_json |  | string | true | The conditions that are used to set the upstream url. Must be a valid json string |
-| variables |  | array of strings | true | The list of all the keys that are passed to `extract_from_io_response` in `propositions_json` |
+| http_connect_timeout | 5000 | number | false | HTTP Connect timeout (ms) |
+| http_send_timeout | 5000 | number | false | HTTP Send timeout (ms) |
+| http_read_timeout | 5000 | number | false | HTTP Read timeout (ms) |
+
+
+## Other config parameters
+
+| Key | Default  | Type  | Required | Description |
+| cache_io_response | true | boolean | false | Should the HTTP response be cached |
+| cache_ttl_header |  | string | true | Header from the HTTP response that will be used to set the ttl of the cached response |
+| cache_identifier |  | string | true | Key in the request which uniquely identifies the request. This is used to create the key against which the response is cached |
+| default_cache_ttl_sec |  | number | true | This ttl is used if `cache_ttl_header` header is not present in the response |
+| propositions_json |  | string | true | The conditions that are used to set the upsteam URL. Must be a valid json string. The conditions are injected into lua code so they must be syntactically correct |
+| variables |  | array of strings | true | The list of all the keys from the response that are used for creating conditions in proposition json |
 
 ## Installation
 
