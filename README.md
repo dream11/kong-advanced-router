@@ -4,12 +4,11 @@
 # Kong-advanced-router
 
 ## Overview
-
-`kong-advanced-router` is a kong plugin that provides functionality to proxy requests to micorservice A or microservice B based on the response of an intermediate HTTP request.
+`kong-advanced-router` is a kong plugin that allows you to make an intermediate HTTP call before proxying the request. Based on the response of this call, the request can be proxied to a one of the upstreams from a set of predefined upstreams.
 
 ## Usecase
 
-Suppose we want to proxy a request to fetch the orders of a user. We want to proxy the request to order service A if the user's status is 1, proxy to order service B if the status is 2 and to order service C otherwise. This plugin can be used to fetch the user details before proxying the request to upstream and then proxy the request to the one of the microservices based on the response of this HTTP request.
+Suppose we want to proxy a request to fetch the orders of a user. We want to proxy the request to order service A if the user's status is 1, proxy to order service B if the status is 2 and to order service C otherwise. This plugin can be used to fetch the user details before proxying the request to upstream and then proxy the request to the one of the upstreams based on the response of this HTTP request.
 
 ### Parameters
 
@@ -143,10 +142,16 @@ Hence, the upstream url is set as `http://order_service_b/orders`
 
 The below functions can be used to write conditions in propositions_json
 
-1. `extract_from_io_response(key)` - Returns the value of the provided key from the I/O call response body. Nested keys can be passed by concatenating with dot (.). Eg - `data.status`
+1. `extract_from_io_response(key)` - Returns the value of the provided key from the HTTP response body. Nested keys can be passed by concatenating with dot (.). Eg - `data.status`
+2. `get_timestamp_utc(datestring)` - Returns the UTC timestamp of a datestring. It internally uses the [Tieske/date](https://github.com/Tieske/date) module. This can be used to write conditions based on the timestring data from the HTTP response.
+3. `get_current_timestamp_utc` - Returns the current timestamp in UTC. This can be used to compare the time string in HTTP response body to current time.
 
-2. `get_timestamp_utc(datestring)` - Returns the UTC timestamp of a datestring. It internally uses the [Tieske/date](https://github.com/Tieske/date) module.
-3. `get_current_timestamp_utc` - Returns the current timestamp in UTC.
+## Caveats
+ 1. `proposition_json` cannot have conditions with comparision to `null`.
+ 2. All upstreams should have the same request signature.
+ 3. The plugin does not parse the request body so the data required to create the intermediate HTTP call must be present in the query string or headers.
+ 4. The conditions in the propositions_json must be syntactically correct in lua as these are directly injected into lua code.
+ 5. Only the URL and route is set from `propostions_json` upstream URL. Query string will not pe forwarded to the proxied request.
 
 
 
