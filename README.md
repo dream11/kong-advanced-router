@@ -30,7 +30,7 @@ Suppose we want to proxy a request to fetch the orders of a user. We want to pro
 | --- | --- | --- | --- | --- |
 | cache_io_response | true | boolean | false | Specifies whether the HTTP response should be cached |
 | cache_ttl_header |  | string | true | Header from the HTTP response used to set the ttl of the cached response |
-| cache_identifier |  | string | true | Key in the request which uniquely identifies the request. This is used to create the key against which the response is cached |
+| cache_identifier |  | string | true | Key in the request which uniquely identifies the intermediate HTTP request. This is used to create the key against which the response of the request is cached |
 | default_cache_ttl_sec |  | number | true | This ttl is used if `cache_ttl_header` header is not present in the response |
 | propositions_json |  | string | true | Array of conditions and URLs that are used to set the upsteam URL. Must be a valid json string. The conditions are injected into lua code so they must be syntactically correct |
 | variables |  | array of strings | true | The list of all the keys from the response that are used for creating conditions in proposition json |
