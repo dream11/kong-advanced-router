@@ -10,9 +10,9 @@
 
 Suppose we want to proxy a request to fetch the orders of a user. We want to proxy the request to order service A if the user's status is 1, proxy to order service B if the status is 2 and to order service C otherwise. This plugin can be used to fetch the user details before proxying the request to upstream and then proxy the request to the one of the upstreams based on the response of this HTTP request.
 
-### Parameters
+## Parameters
 
-## The following config parameters are used to configure the intermediate HTTP call
+### The following config parameters are used to configure the intermediate HTTP call
 
 | Key | Default  | Type  | Required | Description |
 | --- | --- | --- | --- | --- |
@@ -24,7 +24,7 @@ Suppose we want to proxy a request to fetch the orders of a user. We want to pro
 | http_read_timeout | 5000 | number | false | HTTP Read timeout (ms) |
 
 
-## Other config parameters
+### Other config parameters
 
 | Key | Default  | Type  | Required | Description |
 | --- | --- | --- | --- | --- |
