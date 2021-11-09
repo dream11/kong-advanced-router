@@ -27,8 +27,9 @@ Suppose we want to proxy a request to fetch the orders of a user. We want to pro
 ## Other config parameters
 
 | Key | Default  | Type  | Required | Description |
-| cache_io_response | true | boolean | false | Should the HTTP response be cached |
-| cache_ttl_header |  | string | true | Header from the HTTP response that will be used to set the ttl of the cached response |
+| --- | --- | --- | --- | --- |
+| cache_io_response | true | boolean | false | Specifies whether the HTTP response should be cached |
+| cache_ttl_header |  | string | true | Header from the HTTP response used to set the ttl of the cached response |
 | cache_identifier |  | string | true | Key in the request which uniquely identifies the request. This is used to create the key against which the response is cached |
 | default_cache_ttl_sec |  | number | true | This ttl is used if `cache_ttl_header` header is not present in the response |
 | propositions_json |  | string | true | The conditions that are used to set the upsteam URL. Must be a valid json string. The conditions are injected into lua code so they must be syntactically correct |
@@ -122,23 +123,13 @@ Suppose the response received is
 }
 ```
 
-The plugin caches only the keys from the response which are defined in  `variables` in the config.
-
-So the data cached is
-
-```json
-{
-  "data.status": 2
-}
-```
-
-Now this data is used to evaluate the conditions given in `propositions_json`. `extract_from_io_response` is an abstraction that is used to extract values from the I/O call response. In this case, the second condition evaluates to true i.e.
+Now this data is used to evaluate the conditions given in `propositions_json`. `extract_from_io_response` is an abstraction that is used to extract values from the I/O call response body. In this case, the second condition evaluates to true i.e.
 ```lua
 extract_from_io_response('data.status') == 2
 ```
 Hence, the upstream url is set as `http://order_service_b/orders`
 
-### Other abstractions that can be used in the condition part of propositions_json
+### Other functions that can be used in the condition part of propositions_json
 
 The below functions can be used to write conditions in propositions_json
 
@@ -150,7 +141,7 @@ The below functions can be used to write conditions in propositions_json
  1. `proposition_json` cannot have conditions with comparision to `null`.
  2. All upstreams should have the same request signature.
  3. The plugin does not parse the request body so the data required to create the intermediate HTTP call must be present in the query string or headers.
- 4. The conditions in the propositions_json must be syntactically correct in lua as these are directly injected into lua code.
+ 4. The conditions in the `propositions_json` must be syntactically correct in lua as these are directly injected into lua code.
  5. Only the URL and route is set from `propostions_json` upstream URL. Query string will not pe forwarded to the proxied request.
 
 
