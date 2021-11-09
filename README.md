@@ -4,7 +4,7 @@
 # Kong-advanced-router
 
 ## Overview
-`kong-advanced-router` is a kong plugin that allows you to make an intermediate HTTP call before proxying the request. Based on the response of this call, the request can be proxied to a one of the upstreams from a set of predefined upstreams.
+`kong-advanced-router` is a kong plugin that allows you to make an intermediate HTTP call before proxying the request and based on the response of this call, the request can be proxied to one of the upstreams from a set of upstreams that you can define in the plugin configuration.
 
 ## Usecase
 
@@ -32,8 +32,28 @@ Suppose we want to proxy a request to fetch the orders of a user. We want to pro
 | cache_ttl_header |  | string | true | Header from the HTTP response used to set the ttl of the cached response |
 | cache_identifier |  | string | true | Key in the request which uniquely identifies the request. This is used to create the key against which the response is cached |
 | default_cache_ttl_sec |  | number | true | This ttl is used if `cache_ttl_header` header is not present in the response |
-| propositions_json |  | string | true | The conditions that are used to set the upsteam URL. Must be a valid json string. The conditions are injected into lua code so they must be syntactically correct |
+| propositions_json |  | string | true | Array of conditions and URLs that are used to set the upsteam URL. Must be a valid json string. The conditions are injected into lua code so they must be syntactically correct |
 | variables |  | array of strings | true | The list of all the keys from the response that are used for creating conditions in proposition json |
+
+### io_request_template syntax
+
+```json
+  {
+      "body": {
+          "a": "headers.x"
+      }, 
+      "headers": {
+          "b": "query.y"
+      },
+      "query": {
+          "c": "header.z",
+          "d": 1
+      }
+  }
+
+```
+
+Body, headers and query of the HTTP call can be composed from the headers and query of the request and constant values.
 
 ## Installation
 
@@ -138,11 +158,10 @@ The below functions can be used to write conditions in propositions_json
 3. `get_current_timestamp_utc` - Returns the current timestamp in UTC. This can be used to compare the time string in HTTP response body to current time.
 
 ## Caveats
- 1. `proposition_json` cannot have conditions with comparision to `null`.
- 2. All upstreams should have the same request signature.
- 3. The plugin does not parse the request body so the data required to create the intermediate HTTP call must be present in the query string or headers.
- 4. The conditions in the `propositions_json` must be syntactically correct in lua as these are directly injected into lua code.
- 5. Only the URL and route is set from `propostions_json` upstream URL. Query string will not pe forwarded to the proxied request.
+ 1. All upstreams should have the same request signature.
+ 2. The plugin does not parse the request body so the data required to create the intermediate HTTP call must be present in the query string or headers.
+ 3. `proposition_json` cannot have conditions with comparision to `null`.
+ 
 
 
 
