@@ -12,11 +12,9 @@ local interpolate_string_env = require("kong.plugins.advanced-router.utils").int
 
 local AdvancedRouterHandler = {}
 
-AdvancedRouterHandler.PRIORITY = tonumber(os.getenv("KONG_PRIORITY_ADVANCED_ROUTER"))  or 900
-
-kong.log.info("Plugin priority set to " .. AdvancedRouterHandler.PRIORITY .. (os.getenv("KONG_PRIORITY_ADVANCED_ROUTER") and " from env" or " by default"))
-
 AdvancedRouterHandler.VERSION = "1.0.0"
+AdvancedRouterHandler.PRIORITY = tonumber(os.getenv("PRIORITY_ADVANCED_ROUTER"))  or 900
+kong.log.info("Plugin priority set to " .. AdvancedRouterHandler.PRIORITY .. (os.getenv("PRIORITY_ADVANCED_ROUTER") and " from env" or " by default"))
 
 local boolean_functions = {}
 
