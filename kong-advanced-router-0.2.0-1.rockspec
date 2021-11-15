@@ -1,11 +1,11 @@
 package = "kong-advanced-router"
 
-version = "0.1.2-1"
+version = "0.2.0-1"
 
 supported_platforms = {"linux", "macosx"}
 source = {
     url = "git://github.com/dream11/kong-advanced-router",
-    tag = "v0.1.2"
+    tag = "v0.2.0"
 }
 
 description = {
