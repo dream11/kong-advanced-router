@@ -36,7 +36,6 @@ Let's say you want to proxy a request to fetch the orders of a user. The flow is
 
 | Key | Default  | Type  | Required | Description |
 | --- | --- | --- | --- | --- |
-
 | propositions_json |  | string | true | Array of conditions and URLs that are used to set the upstream URL. Must be a valid json string. The conditions should follow correct Lua syntax |
 | variables |  | [string] | true | List of all the keys from the response that are used for creating conditions in propositions_json |
 
@@ -45,20 +44,42 @@ Let's say you want to proxy a request to fetch the orders of a user. The flow is
 ```json
   {
       "body": {
-          "a": "headers.x"
+          "a": "headers.x"  // Set from headers of original request 
       }, 
       "headers": {
-          "b": "query.y"
+          "b": "query.y"    // Set from query string of original request 
       },
       "query": {
-          "c": "header.z",
-          "d": 1
+          "c": "headers.z",
+          "d": 1            // Set a constant value 
       }
   }
 
 ```
 
 Body, headers and query of the intermediate HTTP call can be composed from the headers and query of the incoming request and constant values.
+
+### propositions_json syntax
+
+```json
+[
+    {
+      "condition": "<condition 1>",
+      "upstream_url": "<Upstream URL 1>"
+    },
+    {
+      "condition": "<condition 2>",
+      "upstream_url": "<Upstream URL 2>"
+    },
+    {
+      "condition": "default",
+      "upstream_url": "<Default URL>"
+    }
+]
+
+```
+
+All `upstream_url` endpoints mentioned in `propositions_json` should ideally have the same request and response signature. If response signature is different, clients need to implement the response handling logic.
 
 ## Installation
 
@@ -165,7 +186,7 @@ The below functions can be used to write conditions in *propositions_json*
 
 ## Caveats
 
- 1. All upstream_url endpoints mentioned in propositions_json should ideally have the same request signature. If not, clients need to implement the response handling logic.
+ 1. All `upstream_url` endpoints mentioned in `propositions_json` should ideally have the same request and response signature. If response signature is different, clients need to implement the response handling logic.
  2. The plugin does not parse the request body so the data required to create the intermediate HTTP call must be present in the query string or headers of incoming requests.
  3. `proposition_json` cannot have conditions with comparision to `null`.
  4. Be very careful of the responses you want to cache in memory. Data that is not frequently changing and is common across all users is a good usecase for caching. It saves an extra hop (intermediate HTTP call) by reading the response from cache.
